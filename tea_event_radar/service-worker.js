@@ -146,6 +146,11 @@ chrome.webRequest.onBeforeRequest.addListener(
           eventData.platformId = matchResult.platform;
           eventData.platformConfidence = matchResult.confidence;
           eventData.platformMatchedBy = matchResult.matchedBy;
+
+          // For sensors gzipped payloads, attempt async decode
+          if (matchResult.platform === 'sensors' && postedString) {
+            trySensorsAsyncDecode(eventData, postedString);
+          }
         } catch(e) {
           eventData.platformId = 'unknown';
           eventData.platformConfidence = 0;
@@ -201,6 +206,26 @@ chrome.webRequest.onCompleted.addListener(
   },
   { urls: ["<all_urls>"] }
 );
+
+// Async decode sensors gzipped payloads and update event requestData
+function trySensorsAsyncDecode(eventData, bodyStr) {
+  try {
+    var formData = TeaRadar.AnalyticsCore.tryParseFormData(bodyStr);
+    if (!formData) return;
+    var encoded = formData.data_list || formData.data || '';
+    if (!encoded || typeof encoded !== 'string') return;
+
+    TeaRadar.AnalyticsCore.decodeSensorsPayloadAsync(encoded).then(function(decoded) {
+      if (decoded) {
+        // Store the decoded JSON as requestData so the panel can render it
+        var items = Array.isArray(decoded) ? decoded : [decoded];
+        eventData.requestData = JSON.stringify(items);
+        eventData._sensorsDecoded = true;
+        debouncedUpdatePanel();
+      }
+    }).catch(function() { /* ignore async decode failures */ });
+  } catch(e) { /* ignore */ }
+}
 
 // 清理过多的事件
 function cleanupEventsIfNeeded() {
@@ -365,7 +390,6 @@ function createInPagePanel() {
   let isDragging = false;
   let dragStartX = 0;
   let dragStartWidth = defaultWidth;
-  let activePointerId = null;
 
   const saveWidth = (width) => {
     try {
@@ -410,43 +434,12 @@ function createInPagePanel() {
     resizeHandle.classList.remove('dragging');
     panelContainer.classList.remove('resizing');
     document.body.classList.remove('tea-event-radar-panel-resizing');
-
-    if (
-      resizeHandle.releasePointerCapture &&
-      activePointerId !== null &&
-      resizeHandle.hasPointerCapture &&
-      resizeHandle.hasPointerCapture(activePointerId)
-    ) {
-      resizeHandle.releasePointerCapture(activePointerId);
-    }
-
-    activePointerId = null;
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', stopResize);
     saveWidth(currentWidth);
   };
 
-  resizeHandle.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) {
-      return;
-    }
-
-    isDragging = true;
-    dragStartX = event.clientX;
-    dragStartWidth = currentWidth;
-    activePointerId = event.pointerId;
-
-    resizeHandle.classList.add('dragging');
-    panelContainer.classList.add('resizing');
-    document.body.classList.add('tea-event-radar-panel-resizing');
-
-    if (resizeHandle.setPointerCapture) {
-      resizeHandle.setPointerCapture(activePointerId);
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-  });
-
-  resizeHandle.addEventListener('pointermove', (event) => {
+  const handleMouseMove = (event) => {
     if (!isDragging) {
       return;
     }
@@ -454,17 +447,34 @@ function createInPagePanel() {
     const deltaX = dragStartX - event.clientX;
     applyWidth(dragStartWidth + deltaX, { persist: false });
     event.preventDefault();
-  });
+  };
 
-  resizeHandle.addEventListener('pointerup', stopResize);
-  resizeHandle.addEventListener('pointercancel', stopResize);
-  resizeHandle.addEventListener('lostpointercapture', stopResize);
+  resizeHandle.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    isDragging = true;
+    dragStartX = event.clientX;
+    dragStartWidth = currentWidth;
+
+    resizeHandle.classList.add('dragging');
+    panelContainer.classList.add('resizing');
+    document.body.classList.add('tea-event-radar-panel-resizing');
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopResize);
+
+    event.preventDefault();
+    event.stopPropagation();
+  });
   resizeHandle.addEventListener('dblclick', () => {
     applyWidth(defaultWidth);
   });
   resizeHandle.addEventListener('contextmenu', (event) => {
     event.preventDefault();
   });
+
+  window.addEventListener('blur', stopResize);
 
   window.addEventListener('message', (event) => {
     if (event.source !== iframe.contentWindow) {

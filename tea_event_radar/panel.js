@@ -20,7 +20,7 @@ let allEvents = [];
 let isCapturing = false;
 let searchKeywords = []; // 存储搜索关键词
 let currentFilterMode = 'include'; // 当前过滤模式
-let currentPlatformFilter = ''; // 当前平台过滤
+let currentPlatformFilter = '__known__'; // 当前平台过滤，默认仅显示已知平台
 
 // 性能优化配置
 const RENDER_DEBOUNCE_TIME = 50; // 渲染防抖时间(ms)
@@ -142,6 +142,37 @@ function initPlatformFilter() {
     platformFilterMenu.appendChild(item);
   });
 
+  // Add "unknown platform" option at the end
+  const unknownMeta = window.TeaRadar.PlatformCatalog.getPlatform('unknown');
+  if (unknownMeta) {
+    const unknownItem = document.createElement('div');
+    unknownItem.className = 'platform-filter-item';
+    unknownItem.dataset.value = 'unknown';
+    unknownItem.innerHTML = `<span class="platform-filter-item-label">\u{1F4AD} ${unknownMeta.label}</span>`;
+    platformFilterMenu.appendChild(unknownItem);
+  }
+
+  // Set default selection to "known platforms only"
+  const defaultItem = platformFilterMenu.querySelector('[data-value=""]');
+  if (defaultItem) {
+    defaultItem.classList.remove('selected');
+    defaultItem.dataset.value = '';
+  }
+  // Insert a "known platforms" option right after "all"
+  const knownItem = document.createElement('div');
+  knownItem.className = 'platform-filter-item selected';
+  knownItem.dataset.value = '__known__';
+  knownItem.innerHTML = `<span class="platform-filter-item-label">\u{1F4E1} \u5DF2\u8BC6\u522B\u5E73\u53F0</span>`;
+  // Insert after "全部平台"
+  if (defaultItem && defaultItem.nextSibling) {
+    platformFilterMenu.insertBefore(knownItem, defaultItem.nextSibling);
+  } else {
+    platformFilterMenu.appendChild(knownItem);
+  }
+
+  // Update trigger to reflect default
+  platformFilterTrigger.querySelector('.platform-filter-label').textContent = '\u{1F4E1} \u5DF2\u8BC6\u522B\u5E73\u53F0';
+
   // Toggle menu
   platformFilterTrigger.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -160,12 +191,16 @@ function initPlatformFilter() {
     item.classList.add('selected');
 
     // Update trigger display
-    if (value) {
+    if (value === '__known__') {
+      platformFilterTrigger.querySelector('.platform-filter-label').textContent = '\u{1F4E1} \u5DF2\u8BC6\u522B\u5E73\u53F0';
+    } else if (value === 'unknown') {
+      platformFilterTrigger.querySelector('.platform-filter-label').textContent = '\u{1F4AD} \u672A\u77E5\u5E73\u53F0';
+    } else if (value) {
       const p = window.TeaRadar.PlatformCatalog.getPlatform(value);
       platformFilterTrigger.querySelector('.platform-filter-label').innerHTML =
         `<img src="${p.iconPath}" style="width:16px;height:16px;border-radius:2px;vertical-align:middle"> ${p.label}`;
     } else {
-      platformFilterTrigger.querySelector('.platform-filter-label').textContent = '全部平台';
+      platformFilterTrigger.querySelector('.platform-filter-label').textContent = '\u5168\u90E8\u5E73\u53F0';
     }
 
     platformFilterWrapper.classList.remove('open');
@@ -389,9 +424,17 @@ function filterEvents() {
   }
 
   // 根据平台过滤
-  let filteredEvents = currentPlatformFilter
-    ? allEvents.filter(event => (event.platformId || 'unknown') === currentPlatformFilter)
-    : allEvents;
+  let filteredEvents;
+  if (currentPlatformFilter === '__known__') {
+    // Show only events from recognized platforms (exclude unknown)
+    filteredEvents = allEvents.filter(event => (event.platformId || 'unknown') !== 'unknown');
+  } else if (currentPlatformFilter) {
+    // Show specific platform
+    filteredEvents = allEvents.filter(event => (event.platformId || 'unknown') === currentPlatformFilter);
+  } else {
+    // Show all (including unknown)
+    filteredEvents = allEvents;
+  }
 
   // 根据过滤模式进行过滤
   if (allKeywords.length > 0) {
@@ -563,37 +606,50 @@ function createEventCard(event) {
   let eventName = '未知事件';
   let eventUser = '未知用户';
   let eventType = '';
-  let parsedEvents = [];
+  let parsedEvents = []; // normalized events from platform adapters
+  let useLegacyFormat = false; // flag for DataRangers raw format
+
+  const platformId = event.platformId || 'unknown';
 
   try {
-    // 尝试解析请求数据
-    if (event.requestData) {
+    // Use platform adapters for parsing when available
+    if (platformId !== 'unknown' && platformId !== 'datarangers' &&
+        window.TeaRadar && window.TeaRadar.PlatformAdapters) {
+      var normalized = window.TeaRadar.PlatformAdapters.parseRequest(platformId, {
+        url: event.url,
+        method: event.method,
+        bodyRaw: event.requestData || '',
+        headers: event.headers || [],
+        contentType: ''
+      });
+      if (normalized && normalized.length > 0) {
+        parsedEvents = normalized;
+        var first = normalized[0];
+        eventName = decodeChineseText(first.eventName || '未知事件');
+        eventUser = decodeChineseText(first.userId || first.distinctId || first.anonymousId || '未知用户');
+        eventType = first.eventName && first.eventName.includes('api') ? 'api' : 'event';
+      }
+    }
+
+    // DataRangers legacy format or fallback
+    if (parsedEvents.length === 0 && event.requestData) {
       const requestData = JSON.parse(event.requestData);
 
-      // 提取事件名称和用户信息
       if (requestData && requestData[0] && requestData[0].events) {
-        parsedEvents = requestData[0].events;
+        useLegacyFormat = true;
+        var legacyEvents = requestData[0].events;
 
-        // 获取第一个事件的名称作为卡片标题
-        if (parsedEvents.length > 0) {
-          eventName = decodeChineseText(parsedEvents[0].event || '未知事件');
+        if (legacyEvents.length > 0) {
+          eventName = decodeChineseText(legacyEvents[0].event || '未知事件');
+          eventType = eventName.includes('api') ? 'api' : 'event';
 
-          // 根据事件名称确定类型标签
-          if (eventName.includes('api')) {
-            eventType = 'api';
-          } else {
-            eventType = 'event';
-          }
-
-          // 尝试从params中提取用户信息
-          if (parsedEvents[0].params) {
+          if (legacyEvents[0].params) {
             try {
-              const params = JSON.parse(parsedEvents[0].params);
+              const params = JSON.parse(legacyEvents[0].params);
               const decodedParams = decodeObjectStrings(params);
               eventUser = decodedParams.user || '未知用户';
             } catch (e) {
-              // 如果params不是JSON格式，尝试直接提取
-              const paramsStr = decodeChineseText(parsedEvents[0].params.toString());
+              const paramsStr = decodeChineseText(legacyEvents[0].params.toString());
               const userMatch = paramsStr.match(/user[\"']?\s*:\s*[\"']([^\"']+)[\"']/i);
               if (userMatch && userMatch[1]) {
                 eventUser = decodeChineseText(userMatch[1]);
@@ -601,9 +657,26 @@ function createEventCard(event) {
             }
           }
         }
+
+        // Convert legacy events to normalized format for uniform rendering
+        parsedEvents = legacyEvents.map(function(evt) {
+          var params = {};
+          if (evt.params) {
+            try { params = JSON.parse(evt.params); } catch(e) { params = { _raw: evt.params }; }
+          }
+          return {
+            platform: platformId,
+            eventName: evt.event || '',
+            userId: '',
+            anonymousId: '',
+            distinctId: '',
+            eventTime: '',
+            properties: decodeObjectStrings(params),
+            rawEvent: evt
+          };
+        });
       }
 
-      // 如果没有从events中获取到用户信息，尝试从user字段获取
       if (eventUser === '未知用户' && requestData[0] && requestData[0].user) {
         eventUser = decodeChineseText(requestData[0].user.user_unique_id || '未知用户');
       }
@@ -619,7 +692,6 @@ function createEventCard(event) {
   const eventTime = new Date(event.timestamp).toLocaleTimeString();
 
   // 获取平台元数据
-  const platformId = event.platformId || 'unknown';
   const platformMeta = (window.TeaRadar && window.TeaRadar.PlatformCatalog)
     ? (window.TeaRadar.PlatformCatalog.getPlatform(platformId) || window.TeaRadar.PlatformCatalog.getPlatform('unknown'))
     : null;
@@ -706,81 +778,94 @@ function createEventCard(event) {
   const eventDetailList = document.createElement('div');
   eventDetailList.className = 'event-detail-list';
 
-  // 添加每个事件的详细信息
+  // 添加每个事件的详细信息 (unified NormalizedEvent format)
   if (parsedEvents.length > 0) {
     parsedEvents.forEach((evt, index) => {
       const eventDetail = document.createElement('div');
       eventDetail.className = 'event-detail-item';
 
       // 事件名称
+      const decodedEvtName = decodeChineseText(evt.eventName || evt.event || '未知');
       const eventNameElem = document.createElement('div');
       eventNameElem.className = 'event-param';
-      const decodedEventName = decodeChineseText(evt.event || '未知');
       eventNameElem.innerHTML = `
         <span class="event-param-name">事件名称:</span>
-        <span class="event-param-value">${decodedEventName}</span>
+        <span class="event-param-value">${decodedEvtName}</span>
       `;
       eventDetail.appendChild(eventNameElem);
 
-      // 事件参数
-      if (evt.params) {
-        try {
-          const params = JSON.parse(evt.params);
-          // 对参数进行解码处理
-          const decodedParams = decodeObjectStrings(params);
-
-          const paramsElem = document.createElement('div');
-          paramsElem.className = 'event-param';
-          paramsElem.innerHTML = `<span class="event-param-name">参数:</span>`;
-
-          // 创建参数表格
-          const paramsTable = document.createElement('table');
-          paramsTable.className = 'params-table';
-
-          // 创建表头和表体
-          const tableHead = document.createElement('thead');
-          tableHead.innerHTML = `
-            <tr>
-              <th>参数名</th>
-              <th>值</th>
-            </tr>
-          `;
-
-          const tableBody = document.createElement('tbody');
-
-          // 添加参数行
-          Object.entries(decodedParams).forEach(([key, value]) => {
-            const row = document.createElement('tr');
-
-            // 参数名列
-            const keyCell = document.createElement('td');
-            keyCell.textContent = key;
-            row.appendChild(keyCell);
-
-            // 参数值列
-            const valueCell = document.createElement('td');
-            const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : value;
-            valueCell.textContent = displayValue;
-            row.appendChild(valueCell);
-
-            tableBody.appendChild(row);
-          });
-
-          paramsTable.appendChild(tableHead);
-          paramsTable.appendChild(tableBody);
-          paramsElem.appendChild(paramsTable);
-          eventDetail.appendChild(paramsElem);
-        } catch (e) {
-          // 如果解析失败，尝试解码原始字符串后显示
-          const decodedParams = decodeChineseText(evt.params);
-          const paramsElem = document.createElement('div');
-          paramsElem.className = 'event-param';
-          paramsElem.innerHTML = `
-            <span class="event-param-name">参数:</span>
-            <span class="event-param-value">${decodedParams}</span>
-          `;
-          eventDetail.appendChild(paramsElem);
+      // 用户标识 (normalized events)
+      if (evt.distinctId || evt.userId || evt.anonymousId) {
+        const idElem = document.createElement('div');
+        idElem.className = 'event-param';
+        const idParts = [];
+        if (evt.distinctId) idParts.push('distinct_id: ' + evt.distinctId);
+        else {
+          if (evt.userId) idParts.push('user_id: ' + evt.userId);
+          if (evt.anonymousId) idParts.push('anonymous_id: ' + evt.anonymousId);
         }
+        idElem.innerHTML = `
+          <span class="event-param-name">用户标识:</span>
+          <span class="event-param-value">${decodeChineseText(idParts.join(', '))}</span>
+        `;
+        eventDetail.appendChild(idElem);
+      }
+
+      // 事件时间
+      if (evt.eventTime) {
+        const timeElem = document.createElement('div');
+        timeElem.className = 'event-param';
+        timeElem.innerHTML = `
+          <span class="event-param-name">事件时间:</span>
+          <span class="event-param-value">${evt.eventTime}</span>
+        `;
+        eventDetail.appendChild(timeElem);
+      }
+
+      // 事件参数 (properties from NormalizedEvent, or legacy params)
+      var propsObj = evt.properties || null;
+      if (!propsObj && evt.params) {
+        try { propsObj = typeof evt.params === 'string' ? JSON.parse(evt.params) : evt.params; } catch(e) {}
+      }
+
+      if (propsObj && typeof propsObj === 'object' && Object.keys(propsObj).length > 0) {
+        const decodedParams = decodeObjectStrings(propsObj);
+
+        const paramsElem = document.createElement('div');
+        paramsElem.className = 'event-param';
+        paramsElem.innerHTML = `<span class="event-param-name">参数:</span>`;
+
+        const paramsTable = document.createElement('table');
+        paramsTable.className = 'params-table';
+
+        const tableHead = document.createElement('thead');
+        tableHead.innerHTML = `
+          <tr>
+            <th>参数名</th>
+            <th>值</th>
+          </tr>
+        `;
+
+        const tableBody = document.createElement('tbody');
+
+        Object.entries(decodedParams).forEach(([key, value]) => {
+          const row = document.createElement('tr');
+          const keyCell = document.createElement('td');
+          keyCell.textContent = key;
+          row.appendChild(keyCell);
+
+          const valueCell = document.createElement('td');
+          const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+          valueCell.textContent = displayValue;
+          row.appendChild(valueCell);
+
+          tableBody.appendChild(row);
+        });
+
+        paramsTable.appendChild(tableHead);
+        paramsTable.appendChild(tableBody);
+        paramsElem.appendChild(paramsTable);
+        eventDetail.appendChild(paramsElem);
       }
 
       eventDetailList.appendChild(eventDetail);
@@ -832,8 +917,20 @@ function createEventCard(event) {
     rawJsonData = formattedJson;
     jsonViewer.innerHTML = syntaxHighlight(formattedJson);
   } catch (e) {
-    rawJsonData = event.requestData || '无数据';
-    jsonViewer.textContent = rawJsonData;
+    // For non-JSON bodies (e.g. sensors form data), try to show decoded events
+    if (parsedEvents.length > 0 && parsedEvents[0].rawEvent) {
+      try {
+        var rawEvents = parsedEvents.map(function(pe) { return pe.rawEvent; });
+        rawJsonData = JSON.stringify(rawEvents.length === 1 ? rawEvents[0] : rawEvents, null, 2);
+        jsonViewer.innerHTML = syntaxHighlight(rawJsonData);
+      } catch(e2) {
+        rawJsonData = event.requestData || '无数据';
+        jsonViewer.textContent = rawJsonData;
+      }
+    } else {
+      rawJsonData = event.requestData || '无数据';
+      jsonViewer.textContent = rawJsonData;
+    }
   }
 
   jsonSection.appendChild(jsonViewer);
@@ -875,7 +972,7 @@ function createEventCard(event) {
     e.stopPropagation(); // 阻止冒泡到卡片展开事件
 
     // 仅复制事件名称（每行一个）
-    let eventNamesText = parsedEvents.map(p => p.event || '未知').join('\n');
+    let eventNamesText = parsedEvents.map(p => p.eventName || p.event || '未知').join('\n');
     if (!eventNamesText) {
       eventNamesText = eventName; // 回退到主事件名称
     }

@@ -49,7 +49,7 @@
       priority: 1,
       identificationHints: {
         hosts: ['sensorsdata.cn', 'datasink.sensorsdata.cn'],
-        paths: ['/sa'],
+        paths: ['/sa', '/sa.gif', '/batch'],
         queryKeys: ['project', 'token'],
         headerKeys: [],
         bodyKeys: ['data_list', 'data', 'gzip'],
@@ -71,7 +71,7 @@
       priority: 1,
       identificationHints: {
         hosts: ['www.google-analytics.com', 'region1.google-analytics.com', 'analytics.google.com'],
-        paths: ['/g/collect', '/mp/collect', '/collect', '/r/collect', '/batch', '/j/collect'],
+        paths: ['/g/collect', '/mp/collect', '/collect', '/r/collect', '/batch', '/j/collect', '/debug/mp/collect'],
         queryKeys: ['tid', 'v', 'cid', 'en', 'measurement_id', 'api_secret'],
         headerKeys: [],
         bodyKeys: ['client_id', 'events', 'measurement_id'],
@@ -115,7 +115,7 @@
       priority: 2,
       identificationHints: {
         hosts: ['napi.growingio.com', 'api.growingio.com'],
-        paths: ['/v3/', '/v2/'],
+        paths: ['/v3/', '/v2/', '/s.gif', '/collect'],
         queryKeys: [],
         headerKeys: [],
         bodyKeys: ['eventType', 'dataSourceId', 'sessionId', 'deviceId'],
@@ -137,7 +137,7 @@
       priority: 2,
       identificationHints: {
         hosts: ['api-js.mixpanel.com', 'api.mixpanel.com', 'api-eu.mixpanel.com'],
-        paths: ['/track/', '/engage/', '/groups/', '/record/', '/import'],
+        paths: ['/track/', '/track', '/engage/', '/engage', '/groups/', '/record/', '/import', '/decide'],
         queryKeys: [],
         headerKeys: [],
         bodyKeys: ['event', 'properties', '$token', 'token', 'distinct_id'],
@@ -181,7 +181,7 @@
       priority: 2,
       identificationHints: {
         hosts: ['api2.amplitude.com', 'api.amplitude.com', 'api.eu.amplitude.com'],
-        paths: ['/2/httpapi', '/batch', '/identify', '/groupidentify'],
+        paths: ['/2/httpapi', '/groupidentify'],
         queryKeys: [],
         headerKeys: [],
         bodyKeys: ['api_key', 'events', 'event_type'],
@@ -291,7 +291,7 @@
       priority: 4,
       identificationHints: {
         hosts: ['analytics.tiktok.com', 'business-api.tiktok.com'],
-        paths: ['/api/v2/pixel', '/i18n/pixel/events.js'],
+        paths: ['/api/v2/pixel', '/i18n/pixel/events.js', '/i18n/pixel/static/main.js', '/pixel/track'],
         queryKeys: ['sdkid'],
         headerKeys: [],
         bodyKeys: [],
@@ -313,7 +313,7 @@
       priority: 4,
       identificationHints: {
         hosts: ['c.us.heap-api.com', 'c.eu.heap-api.com', 'cdn.us.heap-api.com', 'cdn.eu.heap-api.com'],
-        paths: [],
+        paths: ['/api/track', '/api/identify', '/api/add_user_properties'],
         queryKeys: [],
         headerKeys: [],
         bodyKeys: [],
@@ -335,7 +335,7 @@
       priority: 4,
       identificationHints: {
         hosts: ['static.hotjar.com', 'in.hotjar.com', 'vc.hotjar.io', 'ws.hotjar.com'],
-        paths: [],
+        paths: ['/c/hotjar-', '/api/v2/client/sites'],
         queryKeys: [],
         headerKeys: [],
         bodyKeys: [],
@@ -379,7 +379,7 @@
       priority: 4,
       identificationHints: {
         hosts: ['sc.omtrdc.net', 'edge.adobedc.net'],
-        paths: ['/b/ss/', '/ee/'],
+        paths: ['/b/ss/', '/ee/', '/ee-pre-prd/', '/interact'],
         queryKeys: ['pageName', 'events'],
         headerKeys: [],
         bodyKeys: ['xdm', '__adobe'],

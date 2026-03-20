@@ -202,10 +202,16 @@
         reasons.push('host:sensorsdata');
       }
 
-      // Path /sa
+      // Path /sa, /sa.gif (image pixel mode), or /batch (batch_send mode)
       if (ctx.path === '/sa' || ctx.path.indexOf('/sa?') !== -1 || ctx.path.indexOf('/sa/') !== -1) {
         score += 0.35;
         reasons.push('path:/sa');
+      } else if (/\/sa\.gif\b/.test(ctx.path)) {
+        score += 0.35;
+        reasons.push('path:sa.gif');
+      } else if (/\/batch\b/.test(ctx.path) && ctx.query.project) {
+        score += 0.3;
+        reasons.push('path:batch+project');
       }
 
       // Query: project= or token=
@@ -215,7 +221,7 @@
         reasons.push('query:token');
       }
 
-      // Body: data= or data_list= with gzip=1
+      // Body: data= or data_list= with optional gzip=1
       if (ctx.query.gzip || (ctx.bodyParsed && typeof ctx.bodyParsed === 'object')) {
         // Form-encoded with data/data_list
         if (ctx.query.data || ctx.query.data_list) {
@@ -224,13 +230,28 @@
         }
       }
 
-      // Body might be form-encoded
+      // Body might be form-encoded with data/data_list (sensors base64 payload)
       if (ctx.bodyStr) {
-        if (ctx.bodyStr.indexOf('data_list=') !== -1 || ctx.bodyStr.indexOf('data=') !== -1) {
+        var hasDataKey = ctx.bodyStr.indexOf('data_list=') !== -1 || ctx.bodyStr.indexOf('data=') !== -1;
+        if (hasDataKey) {
           if (ctx.bodyStr.indexOf('gzip=') !== -1) {
-            score += 0.2;
+            score += 0.25;
             reasons.push('body:data+gzip');
+          } else {
+            // data= without gzip is still a strong sensors signal (non-gzip mode)
+            score += 0.2;
+            reasons.push('body:data(base64)');
           }
+        }
+      }
+
+      // Form-parsed body with data/data_list key containing base64 string
+      if (ctx.bodyParsed && typeof ctx.bodyParsed === 'object' && !Array.isArray(ctx.bodyParsed)) {
+        var formData = ctx.bodyParsed;
+        if ((formData.data && typeof formData.data === 'string' && formData.data.length > 20) ||
+            (formData.data_list && typeof formData.data_list === 'string' && formData.data_list.length > 20)) {
+          score += 0.15;
+          reasons.push('body:form(data/data_list)');
         }
       }
 
@@ -258,9 +279,24 @@
       var ctx = prepareRequestContext(request);
       var results = [];
 
-      // Try direct JSON body
       var dataItems = [];
-      if (ctx.bodyParsed) {
+
+      // Check if bodyParsed is form-encoded with data/data_list (sensors base64 payload)
+      var isSensorsForm = false;
+      if (ctx.bodyParsed && typeof ctx.bodyParsed === 'object' && !Array.isArray(ctx.bodyParsed)) {
+        var encodedData = ctx.bodyParsed.data_list || ctx.bodyParsed.data || '';
+        if (typeof encodedData === 'string' && encodedData.length > 20) {
+          isSensorsForm = true;
+          var decoded = Core.decodeSensorsPayload(encodedData);
+          if (decoded && !decoded.__gzipped) {
+            if (Array.isArray(decoded)) dataItems = decoded;
+            else dataItems = [decoded];
+          }
+        }
+      }
+
+      // Try direct JSON body (only if not sensors form)
+      if (!isSensorsForm && dataItems.length === 0 && ctx.bodyParsed) {
         if (Array.isArray(ctx.bodyParsed)) {
           dataItems = ctx.bodyParsed;
         } else if (typeof ctx.bodyParsed === 'object') {
@@ -268,16 +304,16 @@
         }
       }
 
-      // Try form-encoded data/data_list with base64+gzip
+      // Fallback: try raw body string as form-encoded
       if (dataItems.length === 0 && ctx.bodyStr) {
         var formData = Core.tryParseFormData(ctx.bodyStr);
         if (formData) {
-          var encodedData = formData.data_list || formData.data || '';
-          if (encodedData) {
-            var decoded = Core.decodeSensorsPayload(encodedData);
-            if (decoded && !decoded.__gzipped) {
-              if (Array.isArray(decoded)) dataItems = decoded;
-              else dataItems = [decoded];
+          var enc = formData.data_list || formData.data || '';
+          if (enc) {
+            var dec = Core.decodeSensorsPayload(enc);
+            if (dec && !dec.__gzipped) {
+              if (Array.isArray(dec)) dataItems = dec;
+              else dataItems = [dec];
             }
           }
         }
@@ -299,6 +335,19 @@
           properties: Core.decodeObjectStrings(props),
           rawEvent: item
         }));
+      }
+
+      // If no events decoded (possibly gzipped), store async decode hint
+      if (results.length === 0 && ctx.bodyParsed && typeof ctx.bodyParsed === 'object') {
+        var encPayload = ctx.bodyParsed.data_list || ctx.bodyParsed.data || '';
+        if (typeof encPayload === 'string' && encPayload.length > 20) {
+          results.push(Core.createNormalizedEvent({
+            platform: 'sensors',
+            eventName: '[gzip_encoded]',
+            properties: { _encodedPayload: encPayload, project: ctx.query.project || '' },
+            rawEvent: ctx.bodyParsed
+          }));
+        }
       }
 
       return results;
@@ -796,6 +845,7 @@
       var ctx = prepareRequestContext(request);
       var score = 0;
       var reasons = [];
+      var hasHostMatch = false;
 
       // Host
       var ampHosts = ['api2.amplitude.com', 'api.amplitude.com', 'api.eu.amplitude.com'];
@@ -803,26 +853,51 @@
         if (Core.hostMatches(ctx.host, ampHosts[i])) {
           score += 0.4;
           reasons.push('host:' + ampHosts[i]);
+          hasHostMatch = true;
           break;
         }
       }
 
-      // Path
-      var ampPaths = ['/2/httpapi', '/batch', '/identify', '/groupidentify'];
-      for (var p = 0; p < ampPaths.length; p++) {
-        if (Core.pathMatches(ctx.path, ampPaths[p])) {
-          score += 0.3;
-          reasons.push('path:' + ampPaths[p]);
-          break;
-        }
+      // Path — specific paths get full score; generic '/batch' only scores
+      // when combined with host or api_key to avoid false positives
+      if (Core.pathMatches(ctx.path, '/2/httpapi')) {
+        score += 0.3;
+        reasons.push('path:/2/httpapi');
+      } else if (Core.pathMatches(ctx.path, '/groupidentify')) {
+        score += 0.3;
+        reasons.push('path:/groupidentify');
+      } else if (ctx.path === '/batch' || ctx.path === '/identify') {
+        // Exact path match for generic endpoints (not substring)
+        score += 0.3;
+        reasons.push('path:' + ctx.path);
+      } else if (Core.pathMatches(ctx.path, '/batch') || Core.pathMatches(ctx.path, '/identify')) {
+        // Substring match for /batch or /identify — lower score without host match
+        score += hasHostMatch ? 0.25 : 0.15;
+        reasons.push('path(partial):batch/identify');
       }
 
       // Body
       if (ctx.bodyParsed && typeof ctx.bodyParsed === 'object') {
         if (ctx.bodyParsed.api_key) { score += 0.2; reasons.push('body:api_key'); }
         if (ctx.bodyParsed.events && Array.isArray(ctx.bodyParsed.events)) {
-          score += 0.15;
-          reasons.push('body:events[]');
+          var evts = ctx.bodyParsed.events;
+          if (evts.length > 0 && evts[0].event_type) {
+            // Standard Amplitude format
+            score += 0.2;
+            reasons.push('body:events[].event_type');
+          } else if (evts.length > 0 && evts[0].type && evts[0].ts) {
+            // Amplitude-like SDK with type+ts fields (e.g. custom proxy batch)
+            score += 0.15;
+            reasons.push('body:events[].type+ts');
+          } else {
+            score += 0.05;
+            reasons.push('body:events[]');
+          }
+        }
+        // deviceId at top level (Amplitude or Amplitude-like SDK)
+        if (ctx.bodyParsed.deviceId || ctx.bodyParsed.device_id) {
+          score += 0.1;
+          reasons.push('body:deviceId');
         }
       }
 
@@ -867,17 +942,31 @@
 
       if (!data) return results;
 
+      // Top-level deviceId / userId (shared across events)
+      var topDeviceId = data.device_id || data.deviceId || '';
+      var topUserId = data.user_id || '';
+
       var events = data.events || [];
       for (var i = 0; i < events.length; i++) {
         var evt = events[i];
+
+        // Parse nested JSON data string (e.g. Binance Pika SDK format)
+        var evtProps = evt.event_properties || {};
+        if (evt.data && typeof evt.data === 'string') {
+          try {
+            var parsedData = JSON.parse(evt.data);
+            evtProps = parsedData;
+          } catch(e) { /* keep original */ }
+        }
+
         results.push(Core.createNormalizedEvent({
           platform: 'amplitude',
-          eventName: evt.event_type || '',
-          userId: evt.user_id || '',
-          anonymousId: evt.device_id || '',
-          distinctId: evt.user_id || evt.device_id || '',
-          eventTime: Core.normalizeTimestamp(evt.time),
-          properties: evt.event_properties || {},
+          eventName: evt.event_type || evt.type || '',
+          userId: evt.user_id || topUserId || '',
+          anonymousId: evt.device_id || topDeviceId || '',
+          distinctId: evt.user_id || topUserId || evt.device_id || topDeviceId || '',
+          eventTime: Core.normalizeTimestamp(evt.time || evt.ts),
+          properties: Core.decodeObjectStrings(evtProps),
           rawEvent: evt
         }));
       }

@@ -244,7 +244,15 @@
   function decodeSensorsPayload(encoded) {
     if (!encoded) return null;
     try {
-      var decoded = atob(encoded);
+      // URL-decode first if needed (sensors SDK may URL-encode the base64)
+      var cleaned = encoded;
+      if (cleaned.indexOf('%') !== -1) {
+        try { cleaned = decodeURIComponent(cleaned); } catch(e) { /* keep original */ }
+      }
+      // Fix base64 padding if missing
+      while (cleaned.length % 4 !== 0) cleaned += '=';
+
+      var decoded = atob(cleaned);
       var jsonResult = tryParseJSON(decoded);
       if (jsonResult) return jsonResult;
       // Might be gzip-compressed; try byte-level UTF-8 decode
