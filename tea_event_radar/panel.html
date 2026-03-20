@@ -22,11 +22,23 @@
       
 
       <div class="search-filter-row">
+        <div class="platform-filter-wrapper" id="platformFilterWrapper">
+          <button class="platform-filter-trigger" id="platformFilterTrigger">
+            <span class="platform-filter-label">全部平台</span>
+            <i class="ri-arrow-down-s-line"></i>
+          </button>
+          <div class="platform-filter-menu" id="platformFilterMenu">
+            <div class="platform-filter-item selected" data-value="">
+              <span class="platform-filter-item-label">全部平台</span>
+            </div>
+          </div>
+        </div>
+
         <div class="search-box">
           <i class="ri-search-line search-icon"></i>
           <input type="text" id="searchInput" placeholder="输入埋点事件名过滤...">
         </div>
-        
+
         <div class="filter-dropdown">
           <select id="filterMode" class="filter-select">
             <option value="include" selected>like</option>
@@ -77,6 +89,9 @@
     </footer>
   </div>
   
+  <script src="analytics-core.js"></script>
+  <script src="platform-catalog.js"></script>
+  <script src="platform-adapters.js"></script>
   <script src="panel.js"></script>
 </body>
 </html> 

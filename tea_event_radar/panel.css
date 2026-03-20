@@ -818,6 +818,7 @@ footer {
   background-color: transparent;
   cursor: col-resize;
   z-index: 9999;
+  touch-action: none;
   transition: background-color 0.15s ease;
 }
 
@@ -836,6 +837,15 @@ footer {
   width: calc(100% - 6px);
 }
 
+body.embedded-panel .resize-handle {
+  display: none;
+}
+
+body.embedded-panel .container {
+  margin-left: 0;
+  width: 100%;
+}
+
 /* 拖拽时的用户选择禁用 */
 body.resizing {
   user-select: none;
@@ -848,4 +858,114 @@ body.resizing {
 /* 拖拽时禁用所有过渡动画，减少抖动 */
 body.resizing * {
   transition: none !important;
+}
+
+/* 平台过滤器自定义下拉 */
+.platform-filter-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.platform-filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  font-size: 13px;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.platform-filter-trigger:hover {
+  border-color: hsl(var(--ring));
+}
+
+.platform-filter-trigger img {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.platform-filter-trigger i {
+  font-size: 14px;
+  color: hsl(var(--muted-foreground));
+  transition: transform 0.2s;
+}
+
+.platform-filter-wrapper.open .platform-filter-trigger i {
+  transform: rotate(180deg);
+}
+
+.platform-filter-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
+  padding: 4px;
+}
+
+.platform-filter-wrapper.open .platform-filter-menu {
+  display: block;
+}
+
+.platform-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+
+.platform-filter-item:hover {
+  background: hsl(var(--accent));
+}
+
+.platform-filter-item.selected {
+  background: hsl(var(--accent));
+  font-weight: 600;
+}
+
+.platform-filter-item img {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.platform-filter-item .platform-filter-item-label {
+  flex: 1;
+}
+
+/* 平台标识 badge */
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1;
+}
+
+.platform-badge img {
+  width: 14px;
+  height: 14px;
 } 

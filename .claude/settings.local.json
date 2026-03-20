@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sL \"https://www.google.com/s2/favicons?domain=volcengine.com&sz=64\" -o datarangers.png)",
+      "Bash(curl -sL \"https://www.google.com/s2/favicons?domain=sensorsdata.cn&sz=64\" -o sensors.png)",
+      "Bash(curl -sL \"https://www.google.com/s2/favicons?domain=analytics.google.com&sz=64\" -o google.png)",
+      "Bash(curl -sL \"https://www.google.com/s2/favicons?domain=tongji.baidu.com&sz=64\" -o baidu.png)",
+      "Bash(curl -sL \"https://www.google.com/s2/favicons?domain=growingio.com&sz=64\" -o growingio.png)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"🌐 多平台埋点支持：17个平台识别、捕获与展示:*)"
+    ]
+  }
+}

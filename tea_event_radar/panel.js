@@ -7,6 +7,9 @@ const downloadBtn = document.getElementById('downloadBtn');
 const searchInput = document.getElementById('searchInput');
 const searchTags = document.getElementById('searchTags');
 const filterMode = document.getElementById('filterMode');
+const platformFilterWrapper = document.getElementById('platformFilterWrapper');
+const platformFilterTrigger = document.getElementById('platformFilterTrigger');
+const platformFilterMenu = document.getElementById('platformFilterMenu');
 const eventCount = document.getElementById('eventCount');
 const noEvents = document.getElementById('noEvents');
 const eventsList = document.getElementById('eventsList');
@@ -17,6 +20,7 @@ let allEvents = [];
 let isCapturing = false;
 let searchKeywords = []; // 存储搜索关键词
 let currentFilterMode = 'include'; // 当前过滤模式
+let currentPlatformFilter = ''; // 当前平台过滤
 
 // 性能优化配置
 const RENDER_DEBOUNCE_TIME = 50; // 渲染防抖时间(ms)
@@ -27,6 +31,7 @@ const MAX_VISIBLE_EVENTS = 100; // 最大可见事件数量
 let renderTimeout = null;
 let searchTimeout = null;
 let isRendering = false;
+let pendingRenderEvents = null; // 队列：渲染期间到达的最新事件
 
 // 拖拽调整宽度相关变量
 let isDragging = false;
@@ -34,10 +39,12 @@ let startX = 0;
 let startWidth = 0;
 let currentWidth = 400; // 当前宽度
 let lastUpdateTime = 0; // 上次更新时间，用于防抖
+let resizePointerId = null; // 当前拖拽指针ID
 const minWidth = 280; // 最小宽度
 const maxWidth = 800; // 最大宽度
 const defaultWidth = 400; // 默认宽度
 const UPDATE_THROTTLE = 16; // 更新节流，约60fps
+const isEmbeddedPanel = window.top !== window;
 
 // 添加解码函数来处理中文字符乱码
 function decodeChineseText(text) {
@@ -122,10 +129,66 @@ function decodeObjectStrings(obj) {
   return obj;
 }
 
+// 初始化平台过滤下拉框（自定义带 icon 下拉）
+function initPlatformFilter() {
+  if (!window.TeaRadar || !window.TeaRadar.PlatformCatalog) return;
+  const platforms = window.TeaRadar.PlatformCatalog.getPlatformsByPriority();
+  platforms.forEach(p => {
+    if (p.id === 'unknown') return;
+    const item = document.createElement('div');
+    item.className = 'platform-filter-item';
+    item.dataset.value = p.id;
+    item.innerHTML = `<img src="${p.iconPath}" alt="${p.label}"><span class="platform-filter-item-label">${p.label}</span>`;
+    platformFilterMenu.appendChild(item);
+  });
+
+  // Toggle menu
+  platformFilterTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    platformFilterWrapper.classList.toggle('open');
+  });
+
+  // Select item
+  platformFilterMenu.addEventListener('click', (e) => {
+    const item = e.target.closest('.platform-filter-item');
+    if (!item) return;
+    const value = item.dataset.value;
+    currentPlatformFilter = value;
+
+    // Update selected state
+    platformFilterMenu.querySelectorAll('.platform-filter-item').forEach(el => el.classList.remove('selected'));
+    item.classList.add('selected');
+
+    // Update trigger display
+    if (value) {
+      const p = window.TeaRadar.PlatformCatalog.getPlatform(value);
+      platformFilterTrigger.querySelector('.platform-filter-label').innerHTML =
+        `<img src="${p.iconPath}" style="width:16px;height:16px;border-radius:2px;vertical-align:middle"> ${p.label}`;
+    } else {
+      platformFilterTrigger.querySelector('.platform-filter-label').textContent = '全部平台';
+    }
+
+    platformFilterWrapper.classList.remove('open');
+    filterEvents();
+  });
+
+  // Close on outside click
+  document.addEventListener('click', () => {
+    platformFilterWrapper.classList.remove('open');
+  });
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-  // 初始化拖拽功能
-  initResizeHandler();
+  document.body.classList.toggle('embedded-panel', isEmbeddedPanel);
+
+  // 顶层页面才启用内部拖拽手柄；嵌入 iframe 时由宿主页面处理拉伸
+  if (!isEmbeddedPanel) {
+    initResizeHandler();
+  }
+
+  // 初始化平台过滤下拉框
+  initPlatformFilter();
 
   // 恢复保存的宽度
   restorePanelWidth();
@@ -325,27 +388,29 @@ function filterEvents() {
     });
   }
 
-  // 根据过滤模式进行过滤
-  let filteredEvents = allEvents;
+  // 根据平台过滤
+  let filteredEvents = currentPlatformFilter
+    ? allEvents.filter(event => (event.platformId || 'unknown') === currentPlatformFilter)
+    : allEvents;
 
+  // 根据过滤模式进行过滤
   if (allKeywords.length > 0) {
     switch (currentFilterMode) {
       case 'include':
         // 只看匹配：事件必须包含任意一个关键词
-        filteredEvents = allEvents.filter(event => {
+        filteredEvents = filteredEvents.filter(event => {
           const eventData = JSON.stringify(event).toLowerCase();
           return allKeywords.some(keyword => eventData.includes(keyword));
         });
         break;
       case 'exclude':
         // 排除匹配：事件不能包含任何关键词
-        filteredEvents = allEvents.filter(event => {
+        filteredEvents = filteredEvents.filter(event => {
           const eventData = JSON.stringify(event).toLowerCase();
           return !allKeywords.some(keyword => eventData.includes(keyword));
         });
         break;
       default:
-        filteredEvents = allEvents;
         break;
     }
   }
@@ -363,6 +428,12 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.action === 'updateEvents' && message.events) {
     allEvents = message.events;
     updateEventCount();
+
+    // 取消正在等待的搜索防抖，避免与下面的filterEvents重复执行导致抖动
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      searchTimeout = null;
+    }
 
     // 应用当前的过滤条件
     filterEvents();
@@ -402,8 +473,11 @@ function renderEvents(events) {
 
 // 实际渲染事件列表
 function doRenderEvents(events) {
-  // 防止重复渲染
-  if (isRendering) return;
+  // 如果正在渲染，将最新事件排队等待，而不是丢弃
+  if (isRendering) {
+    pendingRenderEvents = events;
+    return;
+  }
   isRendering = true;
 
   try {
@@ -469,6 +543,14 @@ function doRenderEvents(events) {
     autoScrollToBottom();
   } finally {
     isRendering = false;
+
+    // 如果渲染期间有新的渲染请求排队，立即处理最新的
+    if (pendingRenderEvents) {
+      const nextEvents = pendingRenderEvents;
+      pendingRenderEvents = null;
+      // 使用 requestAnimationFrame 避免同步递归，确保浏览器有机会绘制
+      requestAnimationFrame(() => doRenderEvents(nextEvents));
+    }
   }
 }
 
@@ -536,16 +618,51 @@ function createEventCard(event) {
   // 格式化时间
   const eventTime = new Date(event.timestamp).toLocaleTimeString();
 
+  // 获取平台元数据
+  const platformId = event.platformId || 'unknown';
+  const platformMeta = (window.TeaRadar && window.TeaRadar.PlatformCatalog)
+    ? (window.TeaRadar.PlatformCatalog.getPlatform(platformId) || window.TeaRadar.PlatformCatalog.getPlatform('unknown'))
+    : null;
+
   // 创建左侧内容
   const headerLeft = document.createElement('div');
   headerLeft.className = 'event-header-left';
 
   // 添加事件名称和标签
   const nameContainer = document.createElement('div');
-  nameContainer.innerHTML = `
-    <span class="tag tag-${eventType}">${eventType.toUpperCase()}</span>
-    <span class="event-name">${eventName}</span>
-  `;
+  nameContainer.style.display = 'flex';
+  nameContainer.style.alignItems = 'center';
+  nameContainer.style.gap = '6px';
+  nameContainer.style.flexWrap = 'wrap';
+
+  // 平台 badge
+  if (platformMeta) {
+    const badge = document.createElement('span');
+    badge.className = 'platform-badge';
+    badge.style.backgroundColor = platformMeta.color;
+    if (platformId === 'unknown') {
+      badge.appendChild(document.createTextNode('💭 ' + platformMeta.shortLabel));
+    } else {
+      const badgeImg = document.createElement('img');
+      badgeImg.src = platformMeta.iconPath;
+      badgeImg.alt = platformMeta.shortLabel;
+      badgeImg.onerror = () => { badgeImg.style.display = 'none'; };
+      badge.appendChild(badgeImg);
+      badge.appendChild(document.createTextNode(platformMeta.shortLabel));
+    }
+    nameContainer.appendChild(badge);
+  }
+
+  const tagSpan = document.createElement('span');
+  tagSpan.className = `tag tag-${eventType}`;
+  tagSpan.textContent = eventType.toUpperCase();
+  nameContainer.appendChild(tagSpan);
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'event-name';
+  nameSpan.textContent = eventName;
+  nameContainer.appendChild(nameSpan);
+
   headerLeft.appendChild(nameContainer);
 
   // 添加用户信息
@@ -916,7 +1033,11 @@ function syntaxHighlight(json) {
 function initResizeHandler() {
   if (!resizeHandle) return;
 
-  resizeHandle.addEventListener('mousedown', startResize, { passive: false });
+  resizeHandle.addEventListener('pointerdown', startResize);
+  resizeHandle.addEventListener('pointermove', doResize);
+  resizeHandle.addEventListener('pointerup', stopResize);
+  resizeHandle.addEventListener('pointercancel', stopResize);
+  resizeHandle.addEventListener('lostpointercapture', stopResize);
 
   // 防止选中文本和右键菜单
   resizeHandle.addEventListener('selectstart', (e) => e.preventDefault());
@@ -932,17 +1053,23 @@ function initResizeHandler() {
 
 // 开始拖拽
 function startResize(e) {
+  if (e.button !== undefined && e.button !== 0) {
+    return;
+  }
+
   isDragging = true;
   startX = e.clientX;
   startWidth = currentWidth;
+  resizePointerId = e.pointerId;
 
   // 添加拖拽样式
   resizeHandle.classList.add('dragging');
   document.body.classList.add('resizing');
+  lastUpdateTime = 0;
 
-  // 动态添加事件监听器，只在拖拽时监听
-  document.addEventListener('mousemove', doResize, { passive: false });
-  document.addEventListener('mouseup', stopResize, { passive: false });
+  if (resizeHandle.setPointerCapture && resizePointerId !== undefined) {
+    resizeHandle.setPointerCapture(resizePointerId);
+  }
 
   // 防止拖拽时的默认行为
   e.preventDefault();
@@ -985,38 +1112,66 @@ function stopResize(e) {
   // 移除拖拽样式
   resizeHandle.classList.remove('dragging');
   document.body.classList.remove('resizing');
-
-  // 移除动态添加的事件监听器
-  document.removeEventListener('mousemove', doResize);
-  document.removeEventListener('mouseup', stopResize);
+  if (
+    resizeHandle.releasePointerCapture &&
+    resizePointerId !== null &&
+    resizeHandle.hasPointerCapture &&
+    resizeHandle.hasPointerCapture(resizePointerId)
+  ) {
+    resizeHandle.releasePointerCapture(resizePointerId);
+  }
+  resizePointerId = null;
 
   // 保存当前宽度
   savePanelWidth(currentWidth);
 
-  e.preventDefault();
+  if (e) {
+    e.preventDefault();
+  }
 }
 
 // 设置面板宽度
 function setPanelWidth(width) {
-  // 首先尝试直接调整当前面板宽度（侧边栏模式）
-  try {
-    if (window.parent && window.parent !== window) {
-      // 在iframe中，尝试调整父容器
-      const parentPanel = window.parent.document.getElementById('tea-event-radar-panel');
-      if (parentPanel) {
-        parentPanel.style.width = width + 'px';
-        return;
-      }
+  if (isEmbeddedPanel) {
+    try {
+      window.parent.postMessage({
+        source: 'tea-event-radar-panel-frame',
+        action: 'resizePanel',
+        width: width
+      }, '*');
+    } catch (error) {
+      console.debug('向宿主页面发送调整宽度消息失败:', error);
     }
-    
-    // 尝试调整当前窗口的body宽度（侧边栏模式）
+
+    if (document.documentElement) {
+      document.documentElement.style.width = '100%';
+    }
     if (document.body) {
-      document.body.style.width = width + 'px';
+      document.body.style.width = '100%';
     }
-  } catch (error) {
-    console.debug('直接调整面板宽度失败:', error);
   }
-  
+
+  // 首先尝试直接调整当前面板宽度（侧边栏模式）
+  if (!isEmbeddedPanel) {
+    try {
+      if (window.parent && window.parent !== window) {
+        // 在iframe中，尝试调整父容器
+        const parentPanel = window.parent.document.getElementById('tea-event-radar-panel');
+        if (parentPanel) {
+          parentPanel.style.width = width + 'px';
+          return;
+        }
+      }
+
+      // 尝试调整当前窗口的body宽度（侧边栏模式）
+      if (document.body) {
+        document.body.style.width = width + 'px';
+      }
+    } catch (error) {
+      console.debug('直接调整面板宽度失败:', error);
+    }
+  }
+
   // 向service worker发送消息调整页面内面板宽度（备用方案）
   chrome.runtime.sendMessage({
     action: 'resizePanel',
