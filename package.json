@@ -1,0 +1,12 @@
+{
+  "name": "tea-event-radar",
+  "version": "1.0.3",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "clean": "rm -rf dist tea_event_radar_dist.zip"
+  },
+  "devDependencies": {
+    "terser": "^5.37.0"
+  }
+}

@@ -49,6 +49,43 @@
     };
   }
 
+  function hasPlatformSignal(signals, platformId) {
+    return Array.isArray(signals) && signals.indexOf(platformId) !== -1;
+  }
+
+  function applyPageContextBoost(platformId, baseResult, pageContext) {
+    if (!baseResult || !baseResult.matched || !pageContext) {
+      return baseResult;
+    }
+
+    var matchedBy = Array.isArray(baseResult.matchedBy)
+      ? baseResult.matchedBy.slice()
+      : [];
+    var bonus = 0;
+    var cap = 0.15;
+
+    if (hasPlatformSignal(pageContext.detectedGlobals, platformId)) {
+      bonus += Math.min(cap - bonus, 0.12);
+      matchedBy.push('pageContext:global');
+    }
+
+    if (hasPlatformSignal(pageContext.detectedScripts, platformId)) {
+      bonus += Math.min(cap - bonus, 0.08);
+      matchedBy.push('pageContext:script');
+    }
+
+    if (hasPlatformSignal(pageContext.detectedCookies, platformId)) {
+      bonus += Math.min(cap - bonus, 0.05);
+      matchedBy.push('pageContext:cookie');
+    }
+
+    return matchResult(
+      true,
+      Math.min(1, baseResult.confidence + bonus),
+      matchedBy
+    );
+  }
+
   /**
    * Prepare request context for matchers: parsed URL, parsed body, etc.
    * This is computed once and reused across all matchers.
@@ -1665,7 +1702,7 @@
    *   allMatches: Array<{platform: string, confidence: number, matchedBy: string[]}>
    * }}
    */
-  function matchPlatform(request) {
+  function matchPlatform(request, pageContext) {
     // Prepare context once for reuse
     prepareRequestContext(request);
 
@@ -1676,7 +1713,11 @@
     for (var i = 0; i < ALL_ADAPTERS.length; i++) {
       var adapter = ALL_ADAPTERS[i];
       try {
-        var result = adapter.matcher(request);
+        var result = applyPageContextBoost(
+          adapter.id,
+          adapter.matcher(request),
+          pageContext
+        );
         if (result.matched) {
           allMatches.push({
             platform: adapter.id,
@@ -1741,8 +1782,8 @@
    * @param {Object} request
    * @returns {{ match: Object, events: Object[] }}
    */
-  function matchAndParse(request) {
-    var match = matchPlatform(request);
+  function matchAndParse(request, pageContext) {
+    var match = matchPlatform(request, pageContext);
     var events = parseRequest(match.platform, request);
     return { match: match, events: events };
   }

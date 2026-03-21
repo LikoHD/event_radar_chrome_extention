@@ -20,6 +20,10 @@ npm-debug.log*
 # Node modules (如果将来使用)
 node_modules/
 
+# Build output
+dist/
+*.zip
+
 # Chrome extension development
 *.crx
-*.pem 
+*.pem

@@ -11,10 +11,13 @@ let isCapturing = false;
 const MAX_EVENTS = 1000; // 最大事件数量
 const CLEANUP_THRESHOLD = 1200; // 清理阈值
 const UPDATE_DEBOUNCE_TIME = 100; // 更新防抖时间(ms)
+const PAGE_CONTEXT_TTL_MS = 30 * 60 * 1000;
 
 // 防抖和批量更新相关变量
 let updateTimeout = null;
 let pendingUpdates = false;
+let pageContextCache = {};
+let mainWorldProbeConfig = null;
 
 // =========================================================================
 // URL pre-filter: only capture requests that match known platform patterns
@@ -87,6 +90,218 @@ function shouldCapture(url, method) {
   return false;
 }
 
+function getPageContextCacheKey(tabId, frameId, documentId) {
+  if (typeof tabId !== 'number' || tabId < 0) {
+    return null;
+  }
+  if (documentId) {
+    return tabId + ':' + documentId;
+  }
+  if (typeof frameId === 'number') {
+    return tabId + ':frame:' + frameId;
+  }
+  return null;
+}
+
+function cleanupPageContextCache() {
+  var now = Date.now();
+  for (var key in pageContextCache) {
+    if (!pageContextCache.hasOwnProperty(key)) continue;
+    var entry = pageContextCache[key];
+    if (!entry || typeof entry.updatedAt !== 'number' || now - entry.updatedAt > PAGE_CONTEXT_TTL_MS) {
+      delete pageContextCache[key];
+    }
+  }
+}
+
+function clearPageContextForTab(tabId) {
+  for (var key in pageContextCache) {
+    if (!pageContextCache.hasOwnProperty(key)) continue;
+    if (key.indexOf(tabId + ':') === 0) {
+      delete pageContextCache[key];
+    }
+  }
+}
+
+function dedupePlatforms(platforms) {
+  var seen = {};
+  var result = [];
+  if (!Array.isArray(platforms)) return result;
+
+  for (var i = 0; i < platforms.length; i++) {
+    var platformId = platforms[i];
+    if (!platformId || seen[platformId]) continue;
+    seen[platformId] = true;
+    result.push(platformId);
+  }
+  return result;
+}
+
+function getMainWorldProbeConfig() {
+  if (mainWorldProbeConfig) {
+    return mainWorldProbeConfig;
+  }
+
+  var globalChecks = [];
+  try {
+    var platforms = TeaRadar.PlatformCatalog.getAllPlatforms();
+    for (var i = 0; i < platforms.length; i++) {
+      var hints = platforms[i].identificationHints || {};
+      var globalVars = Array.isArray(hints.globalVars) ? hints.globalVars : [];
+      for (var j = 0; j < globalVars.length; j++) {
+        if (!globalVars[j]) continue;
+        globalChecks.push({
+          platformId: platforms[i].id,
+          globalVar: globalVars[j]
+        });
+      }
+    }
+  } catch (e) {
+    globalChecks = [];
+  }
+
+  mainWorldProbeConfig = {
+    globalChecks: globalChecks
+  };
+
+  return mainWorldProbeConfig;
+}
+
+function probeMainWorldGlobals(config) {
+  var detected = [];
+  var seen = {};
+  var checks = config && Array.isArray(config.globalChecks) ? config.globalChecks : [];
+
+  function pushPlatform(platformId) {
+    if (!platformId || seen[platformId]) return;
+    seen[platformId] = true;
+    detected.push(platformId);
+  }
+
+  try {
+    for (var i = 0; i < checks.length; i++) {
+      var item = checks[i];
+      if (!item || !item.globalVar || !item.platformId) continue;
+      try {
+        if (typeof window[item.globalVar] !== 'undefined' && window[item.globalVar] !== null) {
+          pushPlatform(item.platformId);
+        }
+      } catch (_err) {
+        // Skip inaccessible globals silently.
+      }
+    }
+
+    try {
+      if (window.s && typeof window.s === 'object' &&
+          (typeof window.s.t === 'function' || typeof window.s.tl === 'function' ||
+           window.s.version || window.s.account)) {
+        pushPlatform('adobe');
+      }
+    } catch (_err) {
+      // Ignore Adobe special-case errors.
+    }
+
+    try {
+      if (window.analytics && typeof window.analytics === 'object' &&
+          typeof window.analytics.identify === 'function' &&
+          typeof window.analytics.track === 'function' &&
+          typeof window.analytics.page === 'function') {
+        pushPlatform('segment');
+      }
+    } catch (_err) {
+      // Ignore Segment special-case errors.
+    }
+  } catch (_err) {
+    return detected;
+  }
+
+  return detected;
+}
+
+async function detectMainWorldGlobals(tabId, frameId) {
+  if (typeof tabId !== 'number' || tabId < 0 || typeof frameId !== 'number' || frameId < 0) {
+    return [];
+  }
+
+  try {
+    var results = await chrome.scripting.executeScript({
+      target: {
+        tabId: tabId,
+        frameIds: [frameId]
+      },
+      world: 'MAIN',
+      func: probeMainWorldGlobals,
+      args: [getMainWorldProbeConfig()]
+    });
+    if (Array.isArray(results) && results[0] && Array.isArray(results[0].result)) {
+      return dedupePlatforms(results[0].result);
+    }
+  } catch (error) {
+    // Some pages/frames may reject main-world execution; fall back to isolated-world signals only.
+  }
+
+  return [];
+}
+
+async function updatePageContext(message, sender) {
+  var tabId = sender && sender.tab ? sender.tab.id : null;
+  var frameId = typeof sender.frameId === 'number' ? sender.frameId : 0;
+  var documentId = sender && sender.documentId ? sender.documentId : null;
+  if (typeof tabId !== 'number' || tabId < 0) {
+    return { success: false };
+  }
+
+  cleanupPageContextCache();
+
+  var data = message && message.data ? message.data : {};
+  var detectedScripts = dedupePlatforms(data.detectedScripts);
+  var detectedCookies = dedupePlatforms(data.detectedCookies);
+  var detectedGlobals = await detectMainWorldGlobals(tabId, frameId);
+  var detectedSDKs = dedupePlatforms(
+    detectedGlobals.concat(detectedScripts, detectedCookies)
+  );
+
+  var entry = {
+    url: data.url || '',
+    tabId: tabId,
+    frameId: frameId,
+    documentId: documentId || undefined,
+    detectedGlobals: detectedGlobals,
+    detectedScripts: detectedScripts,
+    detectedCookies: detectedCookies,
+    detectedSDKs: detectedSDKs,
+    updatedAt: Date.now()
+  };
+  var cacheKey = getPageContextCacheKey(tabId, frameId, documentId);
+  if (cacheKey) {
+    pageContextCache[cacheKey] = entry;
+  }
+
+  return {
+    success: true,
+    detectedSDKs: detectedSDKs
+  };
+}
+
+function getPageContextForRequest(details) {
+  cleanupPageContextCache();
+
+  var tabId = typeof details.tabId === 'number' ? details.tabId : -1;
+  var frameId = typeof details.frameId === 'number' ? details.frameId : 0;
+  var documentId = details.documentId || null;
+  var cacheKey = getPageContextCacheKey(tabId, frameId, documentId);
+  if (cacheKey && pageContextCache[cacheKey]) {
+    return pageContextCache[cacheKey];
+  }
+
+  cacheKey = getPageContextCacheKey(tabId, frameId, null);
+  if (cacheKey && pageContextCache[cacheKey]) {
+    return pageContextCache[cacheKey];
+  }
+
+  return null;
+}
+
 // 监听网络请求
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
@@ -95,6 +310,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     if (shouldCapture(details.url, details.method)) {
       try {
         let postedString = '';
+        var pageContext = getPageContextForRequest(details);
 
         if (details.method === 'GET') {
           // For GET requests, use URL query string as request data
@@ -128,6 +344,9 @@ chrome.webRequest.onBeforeRequest.addListener(
           id: Date.now(),
           timestamp: new Date().toISOString(),
           url: details.url,
+          tabId: details.tabId,
+          frameId: details.frameId,
+          documentId: details.documentId,
           method: details.method,
           requestData: postedString,
           headers: null, // 请求头在onSendHeaders中获取
@@ -142,7 +361,7 @@ chrome.webRequest.onBeforeRequest.addListener(
             bodyRaw: postedString || '',
             headers: [],
             contentType: ''
-          });
+          }, pageContext);
           eventData.platformId = matchResult.platform;
           eventData.platformConfidence = matchResult.confidence;
           eventData.platformMatchedBy = matchResult.matchedBy;
@@ -232,7 +451,6 @@ function cleanupEventsIfNeeded() {
   if (capturedEvents.length >= CLEANUP_THRESHOLD) {
     // 保留最新的MAX_EVENTS个事件
     capturedEvents = capturedEvents.slice(0, MAX_EVENTS);
-    console.log(`事件数量已清理，当前保留 ${capturedEvents.length} 个事件`);
   }
 }
 
@@ -258,7 +476,6 @@ function updatePanel() {
     events: capturedEvents
   }).catch(error => {
     // 忽略消息传递错误
-    console.debug("面板更新消息发送失败，可能面板未打开", error);
   });
 }
 
@@ -282,15 +499,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // 调整面板宽度
     resizeInPagePanel(message.width, sender && sender.tab ? sender.tab.id : null);
     sendResponse({ success: true });
+  } else if (message.action === 'updatePageContext') {
+    updatePageContext(message, sender).then(function(result) {
+      sendResponse(result);
+    }).catch(function() {
+      sendResponse({ success: false });
+    });
   }
   return true;
+});
+
+chrome.tabs.onRemoved.addListener(function(tabId) {
+  clearPageContextForTab(tabId);
 });
 
 // 当用户点击扩展图标时，直接注入页面内面板
 chrome.action.onClicked.addListener(async (tab) => {
   // 确保在有效的标签页上
   if (!tab || !tab.id) {
-    console.error("无效的标签页");
     return;
   }
 
@@ -298,12 +524,11 @@ chrome.action.onClicked.addListener(async (tab) => {
     // 直接注入页面内面板
     await injectInPagePanel(tab.id);
   } catch (error) {
-    console.error("注入页面内面板失败:", error);
     // 如果注入失败，尝试创建新标签页
     try {
       chrome.tabs.create({ url: "panel.html" });
     } catch (e) {
-      console.error("创建标签页失败:", e);
+      // 忽略创建标签页失败
     }
   }
 });
@@ -320,12 +545,10 @@ async function injectInPagePanel(tabId) {
     // 注入HTML和JS
     await chrome.scripting.executeScript({
       target: { tabId },
-      function: createInPagePanel
+      func: createInPagePanel
     });
 
-    console.log("页面内面板已注入");
   } catch (error) {
-    console.error("注入页面内面板失败:", error);
     throw error;
   }
 }
@@ -521,7 +744,6 @@ function createInPagePanel() {
 
 // 初始化扩展
 function initializeExtension() {
-  console.log("Tea Event Radar 服务工作者已启动");
   // Pre-build platform index on startup
   buildPlatformIndex();
 }

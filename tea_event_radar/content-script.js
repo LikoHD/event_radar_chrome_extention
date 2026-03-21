@@ -8,15 +8,11 @@
 // ------------------------------------------------------------
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "openSidePanel") {
-    console.log("收到打开侧边栏的请求");
-
     // 尝试通过DOM操作或其他方式提示用户
     showNotification("请点击浏览器右侧的侧边栏图标打开插件面板");
     sendResponse({ success: true });
   }
   else if (message.action === "showInPagePanel") {
-    console.log("收到显示页面内面板的请求");
-
     // 检查是否已存在面板
     const existingPanel = document.getElementById('tea-event-radar-panel');
     if (existingPanel) {
@@ -27,8 +23,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
   }
   else if (message.action === "resizePanel") {
-    console.log("收到调整面板宽度的请求:", message.width);
-
     // 调整页面内面板宽度
     const existingPanel = document.getElementById('tea-event-radar-panel');
     if (existingPanel) {
@@ -131,107 +125,7 @@ function showNotification(message) {
 // 3. SDK / Analytics Platform Detection
 // ============================================================
 
-// --- 3a. Global variable detection (runs in MAIN world) ------
-//
-// Content scripts run in an isolated world and cannot see page
-// globals. We inject a minimal read-only probe into the page's
-// MAIN world that checks for known SDK globals and dispatches
-// results back via a CustomEvent. The probe self-removes
-// immediately and never modifies any page state.
-
-/** Build the MAIN-world probe script source. */
-function buildGlobalProbeScript() {
-  // This string will execute in the page context.
-  // It only reads typeof checks and dispatches a CustomEvent.
-  return `
-(function() {
-  try {
-    var detected = [];
-    var checks = [
-      ['sensorsDataAnalytic201505', 'sensors'],
-      ['ga', 'google'],
-      ['gtag', 'google'],
-      ['dataLayer', 'google'],
-      ['_hmt', 'baidu'],
-      ['gio', 'growingio'],
-      ['gdp', 'growingio'],
-      ['mixpanel', 'mixpanel'],
-      ['amplitude', 'amplitude'],
-      ['_paq', 'matomo'],
-      ['plausible', 'plausible'],
-      ['umami', 'umami'],
-      ['posthog', 'posthog'],
-      ['ttq', 'tiktok'],
-      ['heap', 'heap'],
-      ['hj', 'hotjar'],
-      ['_hjSettings', 'hotjar'],
-      ['clarity', 'clarity'],
-      ['alloy', 'adobe']
-    ];
-    for (var i = 0; i < checks.length; i++) {
-      try {
-        var key = checks[i][0], platform = checks[i][1];
-        if (typeof window[key] !== 'undefined' && window[key] !== null) {
-          if (detected.indexOf(platform) === -1) detected.push(platform);
-        }
-      } catch(e) {}
-    }
-    // Adobe AppMeasurement: window.s with tracking methods
-    try {
-      if (window.s && typeof window.s === 'object' &&
-          (typeof window.s.t === 'function' || typeof window.s.tl === 'function' ||
-           window.s.version || window.s.account)) {
-        if (detected.indexOf('adobe') === -1) detected.push('adobe');
-      }
-    } catch(e) {}
-    // Segment: window.analytics with identify/track/page
-    try {
-      if (window.analytics && typeof window.analytics === 'object' &&
-          typeof window.analytics.identify === 'function' &&
-          typeof window.analytics.track === 'function' &&
-          typeof window.analytics.page === 'function') {
-        if (detected.indexOf('segment') === -1) detected.push('segment');
-      }
-    } catch(e) {}
-    document.dispatchEvent(new CustomEvent('__tea_radar_globals__', {
-      detail: JSON.stringify(detected)
-    }));
-  } catch(e) {}
-})();
-`;
-}
-
-/**
- * Inject the global probe into the MAIN world and listen for results.
- * Returns a Promise that resolves with detected platform IDs.
- */
-function detectGlobalVariables() {
-  return new Promise(function(resolve) {
-    var timeout = setTimeout(function() { resolve([]); }, 3000);
-
-    document.addEventListener('__tea_radar_globals__', function handler(e) {
-      document.removeEventListener('__tea_radar_globals__', handler);
-      clearTimeout(timeout);
-      try {
-        resolve(JSON.parse(e.detail));
-      } catch (_err) {
-        resolve([]);
-      }
-    }, { once: true });
-
-    try {
-      var script = document.createElement('script');
-      script.textContent = buildGlobalProbeScript();
-      (document.documentElement || document.head || document.body).appendChild(script);
-      script.remove(); // Self-clean immediately
-    } catch (_e) {
-      clearTimeout(timeout);
-      resolve([]);
-    }
-  });
-}
-
-// --- 3b. Script tag detection (works from isolated world) ----
+// --- 3a. Script tag detection (works from isolated world) ----
 
 /**
  * Detect analytics SDKs by scanning <script src="..."> tags.
@@ -283,7 +177,7 @@ function detectScriptTags() {
   return detected;
 }
 
-// --- 3c. Cookie detection (works from isolated world) --------
+// --- 3b. Cookie detection (works from isolated world) --------
 
 /**
  * Detect analytics SDKs by checking known cookie name patterns.
@@ -322,41 +216,25 @@ function detectCookies() {
   return detected;
 }
 
-// --- 3d. Orchestrator: run all methods and report -------------
+// --- 3c. Orchestrator: run all methods and report -------------
 
 /**
- * Run all three detection methods, merge results, and send
- * a pageContext message to the background service worker.
+ * Collect isolated-world signals and send them to the service worker.
+ * MAIN-world probing happens in the worker via chrome.scripting.
  */
 function runSDKDetection() {
   try {
     var detectedScripts = detectScriptTags();
     var detectedCookies = detectCookies();
-
-    // Global variable detection is async (MAIN world probe)
-    detectGlobalVariables().then(function(detectedGlobals) {
-      // Merge into a unified set
-      var seen = {};
-      var allDetected = [];
-      var sources = [].concat(detectedGlobals, detectedScripts, detectedCookies);
-      for (var i = 0; i < sources.length; i++) {
-        if (!seen[sources[i]]) {
-          seen[sources[i]] = true;
-          allDetected.push(sources[i]);
-        }
+    chrome.runtime.sendMessage({
+      action: 'updatePageContext',
+      data: {
+        detectedScripts: detectedScripts,
+        detectedCookies: detectedCookies,
+        url: location.href
       }
-
-      chrome.runtime.sendMessage({
-        action: 'pageContext',
-        data: {
-          detectedSDKs: allDetected,
-          detectedScripts: detectedScripts,
-          detectedCookies: detectedCookies,
-          url: location.href,
-        },
-      }).catch(function() {
-        // Extension context may be invalidated — ignore silently
-      });
+    }).catch(function() {
+      // Extension context may be invalidated — ignore silently
     });
   } catch (_e) {
     // Ensure detection never breaks the page
@@ -393,8 +271,3 @@ window.addEventListener('popstate', function() {
 window.addEventListener('hashchange', function() {
   setTimeout(runSDKDetection, 500);
 });
-
-// ------------------------------------------------------------
-// 5. Startup log
-// ------------------------------------------------------------
-console.log("Tea Event Radar 内容脚本已加载");

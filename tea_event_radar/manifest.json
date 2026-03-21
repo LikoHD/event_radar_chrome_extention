@@ -1,22 +1,36 @@
 {
-  "name": "Tea Event Radar",
-  "version": "1.0.2",
+  "name": "埋点雷达-查看网站上报埋点Event Radar",
+  "version": "1.0.3",
   "description": "优雅展示网页埋点上报信息，支持搜索、过滤、复制",
   "manifest_version": 3,
-  "permissions": ["webRequest", "scripting", "activeTab", "sidePanel", "clipboardWrite", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "webRequest",
+    "scripting",
+    "activeTab",
+    "sidePanel",
+    "clipboardWrite",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "service-worker.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "all_frames": true,
+      "js": [
+        "content-script.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "Tea Event Radar",
+    "default_title": "Event Radar",
     "default_icon": {
       "16": "images/icon16.png",
       "48": "images/icon48.png",
@@ -33,8 +47,17 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["panel.html", "panel.css", "panel.js", "analytics-core.js", "platform-catalog.js", "platform-adapters.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "panel.html",
+        "panel.css",
+        "panel.js",
+        "analytics-core.js",
+        "platform-catalog.js",
+        "platform-adapters.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
-} 
+}

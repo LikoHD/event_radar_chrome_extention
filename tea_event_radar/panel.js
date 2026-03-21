@@ -109,7 +109,6 @@ function decodeChineseText(text) {
 
     return text;
   } catch (error) {
-    console.warn('解码文本时出错:', error);
     return text;
   }
 }
@@ -239,8 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.runtime.sendMessage({ action: 'getEvents' }, (response) => {
     if (response && response.events) {
       allEvents = response.events;
-      renderEvents(allEvents);
       updateEventCount();
+      filterEvents();
     }
   });
 
@@ -325,7 +324,6 @@ downloadBtn.addEventListener('click', () => {
       downloadBtn.disabled = false;
     }, 2000);
   } catch (error) {
-    console.error('下载CSV失败:', error);
     downloadBtn.classList.remove('downloading');
     downloadBtn.disabled = false;
     showNotification('下载失败: ' + error.message, 'error');
@@ -999,7 +997,6 @@ function copyToClipboard(text, button) {
     navigator.clipboard.writeText(text).then(() => {
       showCopySuccess(icon, originalClass, button);
     }).catch(err => {
-      console.warn('现代剪贴板API失败，尝试备用方法:', err);
       fallbackCopyToClipboard(text, icon, originalClass, button);
     });
   } else {
@@ -1035,7 +1032,6 @@ function fallbackCopyToClipboard(text, icon, originalClass, button) {
       showCopyFallback(text, icon, originalClass, button);
     }
   } catch (err) {
-    console.error('备用复制方法失败:', err);
     showCopyFallback(text, icon, originalClass, button);
   }
 }
@@ -1237,7 +1233,7 @@ function setPanelWidth(width) {
         width: width
       }, '*');
     } catch (error) {
-      console.debug('向宿主页面发送调整宽度消息失败:', error);
+      // 忽略向宿主页面发送消息失败
     }
 
     if (document.documentElement) {
@@ -1265,7 +1261,7 @@ function setPanelWidth(width) {
         document.body.style.width = width + 'px';
       }
     } catch (error) {
-      console.debug('直接调整面板宽度失败:', error);
+      // 忽略直接调整面板宽度失败
     }
   }
 
@@ -1274,7 +1270,7 @@ function setPanelWidth(width) {
     action: 'resizePanel',
     width: width
   }).catch(error => {
-    console.debug('发送调整宽度消息失败:', error);
+    // 忽略发送调整宽度消息失败
   });
 }
 
@@ -1283,7 +1279,7 @@ function savePanelWidth(width) {
   try {
     chrome.storage.local.set({ panelWidth: width });
   } catch (error) {
-    console.warn('保存面板宽度失败:', error);
+    // 忽略保存面板宽度失败
   }
 }
 
@@ -1296,7 +1292,7 @@ function restorePanelWidth() {
       setPanelWidth(savedWidth);
     });
   } catch (error) {
-    console.warn('恢复面板宽度失败:', error);
+    // 忽略恢复面板宽度失败
     currentWidth = defaultWidth;
     setPanelWidth(defaultWidth);
   }
@@ -1383,7 +1379,7 @@ function generateCSV(events) {
 
       csvRows.push(row.join(','));
     } catch (error) {
-      console.warn('处理事件数据时出错:', error, event);
+      // 忽略处理事件数据出错
       // 添加错误行
       csvRows.push(`"${new Date(event.timestamp).toLocaleString('zh-CN')}","解析错误","","","${event.url || ''}","","${(event.requestData || '').replace(/"/g, '""')}"`);
     }
