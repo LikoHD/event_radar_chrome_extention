@@ -1410,6 +1410,214 @@ function downloadCSV(csvData, filename) {
   URL.revokeObjectURL(url);
 }
 
+// =========================================================================
+// Settings Panel - Filter Rules & Whitelist
+// =========================================================================
+
+const FILTER_RULES_KEY = 'filterRules';
+const WHITELIST_RULES_KEY = 'whitelistRules';
+
+// Preset filter patterns for common non-analytics URLs
+const PRESET_FILTERS = [
+  { label: 'Google Static', pattern: 'gstatic\\.com' },
+  { label: 'Google APIs', pattern: 'googleapis\\.com' },
+  { label: 'Google Fonts', pattern: 'fonts\\.googleapis\\.com|fonts\\.gstatic\\.com' },
+  { label: 'CDN Resources', pattern: 'cdn\\.jsdelivr\\.net|cdnjs\\.cloudflare\\.com|unpkg\\.com' },
+  { label: 'Favicon', pattern: 'favicon\\.ico' },
+  { label: 'Image Files', pattern: '\\.(png|jpg|jpeg|gif|svg|webp|ico)(\\?|$)' },
+  { label: 'CSS/JS Static', pattern: '\\.(css|js|woff2?|ttf|eot)(\\?|$)' },
+  { label: 'Google OneBar', pattern: 'gstatic\\.com/_/mss/boq-one-google' },
+  { label: 'Google Recaptcha', pattern: 'recaptcha\\.net|recaptcha/api' },
+  { label: 'Browser Extensions', pattern: 'chrome-extension://|moz-extension://' },
+  { label: 'SourceMap', pattern: '\\.map(\\?|$)' },
+  { label: 'Websocket', pattern: '^wss?://' },
+];
+
+let filterRules = [];    // { pattern: string, enabled: boolean }
+let whitelistRules = [];
+
+function initSettings() {
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+
+  // Open settings
+  settingsBtn.addEventListener('click', () => {
+    settingsPanel.classList.add('active');
+    settingsOverlay.classList.add('active');
+  });
+
+  // Close settings
+  function closeSettings() {
+    settingsPanel.classList.remove('active');
+    settingsOverlay.classList.remove('active');
+  }
+  settingsCloseBtn.addEventListener('click', closeSettings);
+  settingsOverlay.addEventListener('click', closeSettings);
+
+  // Filter rules
+  const addFilterRuleBtn = document.getElementById('addFilterRuleBtn');
+  const filterRuleInput = document.getElementById('filterRuleInput');
+
+  addFilterRuleBtn.addEventListener('click', () => {
+    addRule('filter', filterRuleInput.value.trim());
+    filterRuleInput.value = '';
+  });
+  filterRuleInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      addRule('filter', filterRuleInput.value.trim());
+      filterRuleInput.value = '';
+    }
+  });
+
+  // Whitelist rules
+  const addWhitelistRuleBtn = document.getElementById('addWhitelistRuleBtn');
+  const whitelistRuleInput = document.getElementById('whitelistRuleInput');
+
+  addWhitelistRuleBtn.addEventListener('click', () => {
+    addRule('whitelist', whitelistRuleInput.value.trim());
+    whitelistRuleInput.value = '';
+  });
+  whitelistRuleInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      addRule('whitelist', whitelistRuleInput.value.trim());
+      whitelistRuleInput.value = '';
+    }
+  });
+
+  // Load saved rules
+  loadRules();
+
+  // Render presets
+  renderPresets();
+}
+
+function addRule(type, pattern) {
+  if (!pattern) return;
+
+  // Validate regex
+  try {
+    new RegExp(pattern);
+  } catch (e) {
+    showNotification('Invalid regex: ' + e.message, 'error');
+    return;
+  }
+
+  const rules = type === 'filter' ? filterRules : whitelistRules;
+
+  // Check duplicate
+  if (rules.some(r => r.pattern === pattern)) {
+    showNotification('Rule already exists', 'warning');
+    return;
+  }
+
+  rules.push({ pattern, enabled: true });
+  saveRules();
+  renderRules(type);
+  renderPresets();
+}
+
+function removeRule(type, index) {
+  const rules = type === 'filter' ? filterRules : whitelistRules;
+  rules.splice(index, 1);
+  saveRules();
+  renderRules(type);
+  renderPresets();
+}
+
+function toggleRule(type, index) {
+  const rules = type === 'filter' ? filterRules : whitelistRules;
+  rules[index].enabled = !rules[index].enabled;
+  saveRules();
+  renderRules(type);
+}
+
+function renderRules(type) {
+  const rules = type === 'filter' ? filterRules : whitelistRules;
+  const listEl = document.getElementById(type === 'filter' ? 'filterRulesList' : 'whitelistRulesList');
+
+  if (rules.length === 0) {
+    listEl.innerHTML = '<div class="rules-empty">No rules added</div>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  rules.forEach((rule, index) => {
+    const item = document.createElement('div');
+    item.className = 'rule-item';
+    item.innerHTML = `
+      <button class="rule-toggle ${rule.enabled ? 'active' : ''}" data-index="${index}"></button>
+      <span class="rule-pattern">${rule.pattern}</span>
+      <button class="rule-delete" data-index="${index}" title="Delete">
+        <i class="ri-delete-bin-line"></i>
+      </button>
+    `;
+
+    item.querySelector('.rule-toggle').addEventListener('click', () => toggleRule(type, index));
+    item.querySelector('.rule-delete').addEventListener('click', () => removeRule(type, index));
+
+    listEl.appendChild(item);
+  });
+}
+
+function renderPresets() {
+  const container = document.getElementById('presetFilters');
+  container.innerHTML = '';
+
+  PRESET_FILTERS.forEach(preset => {
+    const alreadyAdded = filterRules.some(r => r.pattern === preset.pattern);
+    const chip = document.createElement('button');
+    chip.className = 'preset-chip' + (alreadyAdded ? ' added' : '');
+    chip.innerHTML = `<i class="ri-${alreadyAdded ? 'check-line' : 'add-line'}"></i> ${preset.label}`;
+
+    if (!alreadyAdded) {
+      chip.addEventListener('click', () => {
+        addRule('filter', preset.pattern);
+      });
+    }
+
+    container.appendChild(chip);
+  });
+}
+
+function saveRules() {
+  try {
+    chrome.storage.local.set({
+      [FILTER_RULES_KEY]: filterRules,
+      [WHITELIST_RULES_KEY]: whitelistRules
+    });
+
+    // Notify service worker about rule changes
+    chrome.runtime.sendMessage({
+      action: 'updateFilterRules',
+      filterRules: filterRules,
+      whitelistRules: whitelistRules
+    }).catch(() => {});
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
+function loadRules() {
+  try {
+    chrome.storage.local.get([FILTER_RULES_KEY, WHITELIST_RULES_KEY], (result) => {
+      filterRules = Array.isArray(result[FILTER_RULES_KEY]) ? result[FILTER_RULES_KEY] : [];
+      whitelistRules = Array.isArray(result[WHITELIST_RULES_KEY]) ? result[WHITELIST_RULES_KEY] : [];
+      renderRules('filter');
+      renderRules('whitelist');
+      renderPresets();
+    });
+  } catch (e) {
+    // Ignore load errors
+  }
+}
+
+// Initialize settings when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  initSettings();
+});
+
 // 通知函数
 function showNotification(message, type = 'info') {
   // 创建通知元素

@@ -17,7 +17,12 @@
           <h1>Event Radar</h1>
           <span class="version">1.1</span>
         </div>
-        <a class="author-link" href="https://x.com/liko2049" rel="noreferrer noopener" target="_blank">Made by @Liko</a>
+        <div class="header-actions">
+          <button id="settingsBtn" class="settings-btn" title="Filter Settings">
+            <i class="ri-settings-3-line"></i>
+          </button>
+          <a class="author-link" href="https://x.com/liko2049" rel="noreferrer noopener" target="_blank">Made by @Liko</a>
+        </div>
       </div>
       
 
@@ -89,6 +94,53 @@
     </footer>
   </div>
   
+  <!-- Settings Sidebar -->
+  <div id="settingsOverlay" class="settings-overlay"></div>
+  <div id="settingsPanel" class="settings-panel">
+    <div class="settings-header">
+      <h2>Filter Settings</h2>
+      <button id="settingsCloseBtn" class="settings-close-btn">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="settings-body">
+      <!-- Filter Rules Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h3>Filter Rules (Regex)</h3>
+          <p class="settings-section-desc">Matching URLs will be excluded from capture</p>
+        </div>
+        <div id="filterRulesList" class="rules-list"></div>
+        <div class="rule-add-row">
+          <input type="text" id="filterRuleInput" class="rule-input" placeholder="e.g. gstatic\\.com|googleapis\\.com">
+          <button id="addFilterRuleBtn" class="btn btn-primary btn-sm">Add</button>
+        </div>
+      </div>
+
+      <!-- Whitelist Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h3>Whitelist (Regex)</h3>
+          <p class="settings-section-desc">Matching URLs will always be captured, overriding filter rules</p>
+        </div>
+        <div id="whitelistRulesList" class="rules-list"></div>
+        <div class="rule-add-row">
+          <input type="text" id="whitelistRuleInput" class="rule-input" placeholder="e.g. my-analytics\\.example\\.com">
+          <button id="addWhitelistRuleBtn" class="btn btn-primary btn-sm">Add</button>
+        </div>
+      </div>
+
+      <!-- Preset Filters -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <h3>Quick Add Presets</h3>
+          <p class="settings-section-desc">Common non-analytics URL patterns</p>
+        </div>
+        <div id="presetFilters" class="preset-list"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="analytics-core.js"></script>
   <script src="platform-catalog.js"></script>
   <script src="platform-adapters.js"></script>

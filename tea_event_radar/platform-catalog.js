@@ -17,7 +17,7 @@
     // --- ByteDance / DataRangers (current default) ---
     datarangers: {
       id: 'datarangers',
-      label: 'ByteDance DataRangers',
+      label: 'ByteDance Data',
       shortLabel: 'DR',
       vendor: 'ByteDance',
       category: 'commercial',

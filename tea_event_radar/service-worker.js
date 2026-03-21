@@ -13,6 +13,10 @@ const CLEANUP_THRESHOLD = 1200; // 清理阈值
 const UPDATE_DEBOUNCE_TIME = 100; // 更新防抖时间(ms)
 const PAGE_CONTEXT_TTL_MS = 30 * 60 * 1000;
 
+// Filter rules state
+let userFilterRules = [];   // { pattern: string, enabled: boolean }
+let userWhitelistRules = [];
+
 // 防抖和批量更新相关变量
 let updateTimeout = null;
 let pendingUpdates = false;
@@ -89,6 +93,50 @@ function shouldCapture(url, method) {
 
   return false;
 }
+
+/**
+ * Check if a URL should be excluded by user-defined filter rules.
+ * Returns true if the URL should be BLOCKED (not captured).
+ * Whitelist rules override filter rules.
+ */
+function isUrlFiltered(url) {
+  if (!url) return false;
+
+  // Check whitelist first - if matched, always allow
+  for (var i = 0; i < userWhitelistRules.length; i++) {
+    var rule = userWhitelistRules[i];
+    if (!rule.enabled) continue;
+    try {
+      if (new RegExp(rule.pattern, 'i').test(url)) {
+        return false; // Whitelisted, do not filter
+      }
+    } catch (e) { /* invalid regex, skip */ }
+  }
+
+  // Check filter rules - if matched, block
+  for (var j = 0; j < userFilterRules.length; j++) {
+    var rule2 = userFilterRules[j];
+    if (!rule2.enabled) continue;
+    try {
+      if (new RegExp(rule2.pattern, 'i').test(url)) {
+        return true; // Filtered out
+      }
+    } catch (e) { /* invalid regex, skip */ }
+  }
+
+  return false; // Not filtered
+}
+
+// Load filter rules from storage at startup
+function loadFilterRules() {
+  try {
+    chrome.storage.local.get(['filterRules', 'whitelistRules'], function(result) {
+      userFilterRules = Array.isArray(result.filterRules) ? result.filterRules : [];
+      userWhitelistRules = Array.isArray(result.whitelistRules) ? result.whitelistRules : [];
+    });
+  } catch(e) { /* ignore */ }
+}
+loadFilterRules();
 
 function getPageContextCacheKey(tabId, frameId, documentId) {
   if (typeof tabId !== 'number' || tabId < 0) {
@@ -307,7 +355,7 @@ chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
     if (!isCapturing) return;
 
-    if (shouldCapture(details.url, details.method)) {
+    if (shouldCapture(details.url, details.method) && !isUrlFiltered(details.url)) {
       try {
         let postedString = '';
         var pageContext = getPageContextForRequest(details);
@@ -397,7 +445,7 @@ chrome.webRequest.onSendHeaders.addListener(
   (details) => {
     if (!isCapturing) return;
 
-    if (shouldCapture(details.url, details.method)) {
+    if (shouldCapture(details.url, details.method) && !isUrlFiltered(details.url)) {
       // 查找匹配的请求并添加头信息
       const event = capturedEvents.find(e => e.url === details.url && !e.headers);
       if (event) {
@@ -498,6 +546,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "resizePanel") {
     // 调整面板宽度
     resizeInPagePanel(message.width, sender && sender.tab ? sender.tab.id : null);
+    sendResponse({ success: true });
+  } else if (message.action === 'updateFilterRules') {
+    userFilterRules = Array.isArray(message.filterRules) ? message.filterRules : [];
+    userWhitelistRules = Array.isArray(message.whitelistRules) ? message.whitelistRules : [];
     sendResponse({ success: true });
   } else if (message.action === 'updatePageContext') {
     updatePageContext(message, sender).then(function(result) {
