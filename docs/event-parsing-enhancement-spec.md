@@ -6,6 +6,8 @@
 > Freshness: 🟢 FRESH
 > Scope: `神策埋点解析修复` + `Amplitude解析增强` + `Panel统一渲染` + `平台过滤默认策略` + `各平台端点补全`
 
+> Note: 本文档记录 2026-03-20 的阶段性增强里程碑，文中提到的“17 个平台”仅代表当时范围。当前完整实现请以 `docs/product-technical-spec.md` 为准。
+
 ---
 
 ## 1. 文档目的

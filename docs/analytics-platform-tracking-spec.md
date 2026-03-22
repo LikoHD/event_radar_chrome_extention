@@ -6,6 +6,8 @@
 > Freshness: 🟢 FRESH
 > Scope: `神策` + `GA4` + `百度统计` + `GrowingIO` + `Mixpanel` + `Segment` + `Amplitude` + `Matomo` + `Plausible` + `Umami` + `PostHog` + `ByteDance DataRangers` + `TikTok Pixel` + `Heap` + `Hotjar` + `Microsoft Clarity` + `Adobe Analytics`
 
+> Note: 这是一份“17 个主流平台”的研究参考文档，不是当前代码适配器的全量清单。当前实现范围请看 `docs/product-technical-spec.md`。
+
 ---
 
 ## 1. 文档目的

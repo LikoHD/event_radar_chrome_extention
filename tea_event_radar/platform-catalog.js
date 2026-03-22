@@ -366,6 +366,28 @@
       }
     },
 
+    // --- Microsoft Advertising UET ---
+    microsoft_uet: {
+      id: 'microsoft_uet',
+      label: 'Microsoft UET',
+      shortLabel: 'UET',
+      vendor: 'Microsoft Advertising',
+      category: 'commercial',
+      iconPath: 'images/platforms/microsoft-uet.svg',
+      docsUrl: 'https://learn.microsoft.com/en-us/advertising/guides/universal-event-tracking?view=bingads-13',
+      color: '#008373',
+      priority: 2,
+      identificationHints: {
+        hosts: ['bat.bing.com'],
+        paths: ['/action/0'],
+        queryKeys: ['ti', 'evt', 'u', 'mid'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: ['uetq'],
+        cookies: ['_uetmsclkid', '_uetsid', '_uetvid']
+      }
+    },
+
     // --- Adobe Analytics ---
     adobe: {
       id: 'adobe',
@@ -385,6 +407,402 @@
         bodyKeys: ['xdm', '__adobe'],
         globalVars: ['s', 'alloy', 's_gi'],
         cookies: ['s_vi', 's_fid', 'AMCV_']
+      }
+    },
+
+    // --- Alibaba / Taobao Goldlog & ARMS ---
+    alibaba: {
+      id: 'alibaba',
+      label: '阿里/淘宝',
+      shortLabel: 'ALI',
+      vendor: 'Alibaba Group',
+      category: 'commercial',
+      iconPath: 'images/platforms/alibaba.svg',
+      docsUrl: '',
+      color: '#FF6A00',
+      priority: 1,
+      identificationHints: {
+        hosts: ['gm.mmstat.com', 's-gm.mmstat.com', 'log.mmstat.com'],
+        paths: ['/arms.1.1', '/jstracker.3', '/y.gif'],
+        queryKeys: ['gokey', 'gmkey', 'logtype', 'cna'],
+        headerKeys: [],
+        bodyKeys: ['gmkey', 'gokey', 'logtype'],
+        globalVars: ['aplus_queue', 'goldlog'],
+        cookies: ['cna']
+      }
+    },
+
+    // --- Tencent Beacon / QQ ---
+    tencent: {
+      id: 'tencent',
+      label: '腾讯/QQ',
+      shortLabel: 'QQ',
+      vendor: 'Tencent',
+      category: 'commercial',
+      iconPath: 'images/platforms/tencent.svg',
+      docsUrl: 'https://cloud.tencent.com/document/product/248/87280',
+      color: '#0F7BFF',
+      priority: 1,
+      identificationHints: {
+        hosts: ['otheve.beacon.qq.com', 'snowflake.qq.com'],
+        paths: ['/analytics/v2_upload', '/ola/v2'],
+        queryKeys: ['appkey'],
+        headerKeys: [],
+        bodyKeys: ['sdkId', 'sdkVersion', 'common', 'events'],
+        globalVars: ['Aegis'],
+        cookies: []
+      }
+    },
+
+    // --- NetEase NTM / VMonitor ---
+    netease: {
+      id: 'netease',
+      label: '网易',
+      shortLabel: 'WY',
+      vendor: 'NetEase',
+      category: 'commercial',
+      iconPath: 'images/platforms/netease.svg',
+      docsUrl: '',
+      color: '#E60012',
+      priority: 1,
+      identificationHints: {
+        hosts: ['h5.analytics.126.net', 'vmonitor.ws.netease.com'],
+        paths: ['/news/c', '/web/performance', '/web/resource'],
+        queryKeys: ['param', 'projectid'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: [],
+        cookies: []
+      }
+    },
+
+    // --- Didi Omega ---
+    didi: {
+      id: 'didi',
+      label: '滴滴',
+      shortLabel: 'DD',
+      vendor: 'DiDi Global',
+      category: 'commercial',
+      iconPath: 'images/platforms/didi.svg',
+      docsUrl: '',
+      color: '#FF7A00',
+      priority: 1,
+      identificationHints: {
+        hosts: ['omgup.didiglobal.com'],
+        paths: ['/api/web/stat'],
+        queryKeys: ['e'],
+        headerKeys: [],
+        bodyKeys: ['e', 'attrs', 'oid', 'uwid'],
+        globalVars: [],
+        cookies: []
+      }
+    },
+
+    // --- Meituan LX / Owl ---
+    meituan: {
+      id: 'meituan',
+      label: '美团',
+      shortLabel: 'MT',
+      vendor: 'Meituan',
+      category: 'commercial',
+      iconPath: 'images/platforms/meituan.svg',
+      docsUrl: '',
+      color: '#FFD100',
+      priority: 1,
+      identificationHints: {
+        hosts: ['lx1.meituan.net', 'lx2.meituan.net', 'lx.meituan.net', 'catfront.dianping.com'],
+        paths: ['/api/pv', '/batch', '/api/metric', '/raptorapi/fstSpeed'],
+        queryKeys: ['d'],
+        headerKeys: [],
+        bodyKeys: ['project', 'pageUrl', 'realUrl', 'infos'],
+        globalVars: [],
+        cookies: []
+      }
+    },
+
+    // --- JD Mercury ---
+    jd: {
+      id: 'jd',
+      label: '京东',
+      shortLabel: 'JD',
+      vendor: 'JD.com',
+      category: 'commercial',
+      iconPath: 'images/platforms/jd.svg',
+      docsUrl: '',
+      color: '#E2231A',
+      priority: 1,
+      identificationHints: {
+        hosts: ['mercury.jd.com'],
+        paths: ['/log.gif'],
+        queryKeys: ['uid', 'sid', 'v', 't'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: [],
+        cookies: []
+      }
+    },
+
+    // --- Bilibili Web Logger ---
+    bilibili: {
+      id: 'bilibili',
+      label: 'B站',
+      shortLabel: 'B',
+      vendor: 'Bilibili',
+      category: 'commercial',
+      iconPath: 'images/platforms/bilibili.svg',
+      docsUrl: '',
+      color: '#00A1D6',
+      priority: 1,
+      identificationHints: {
+        hosts: ['data.bilibili.com'],
+        paths: ['/log/web', '/v2/log/web'],
+        queryKeys: ['content_type', 'spm_id_from'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: [],
+        cookies: ['buvid3', 'buvid4', '_uuid']
+      }
+    },
+
+    // --- Ctrip UBT / Bee ---
+    ctrip: {
+      id: 'ctrip',
+      label: '携程',
+      shortLabel: 'CT',
+      vendor: 'Trip.com Group',
+      category: 'commercial',
+      iconPath: 'images/platforms/ctrip.svg',
+      docsUrl: '',
+      color: '#1A73E8',
+      priority: 2,
+      identificationHints: {
+        hosts: ['s.c-ctrip.com', 'ma-adx.ctrip.com'],
+        paths: ['/bee/collect', '/_ma.gif'],
+        queryKeys: ['metaSender', 'contextTs', 'vid', 'sid', 'pvId', 'appId', 'key'],
+        headerKeys: [],
+        bodyKeys: ['d', 'ac'],
+        globalVars: [],
+        cookies: ['_bfa', 'UBT_VID']
+      }
+    },
+
+    // --- Amazon Internal Telemetry ---
+    amazon: {
+      id: 'amazon',
+      label: 'Amazon',
+      shortLabel: 'AMZ',
+      vendor: 'Amazon',
+      category: 'commercial',
+      iconPath: 'images/platforms/amazon.svg',
+      docsUrl: '',
+      color: '#FF9900',
+      priority: 2,
+      identificationHints: {
+        hosts: ['fls-na.amazon.com', 'unagi.amazon.com'],
+        paths: ['/1/batch/1/OP/', '/tt/i', '/1/events/com.amazon.csm.nexusclient.prod'],
+        queryKeys: ['uedata', 'productId', 'ts', 'firstImp'],
+        headerKeys: [],
+        bodyKeys: ['cs', 'events'],
+        globalVars: [],
+        cookies: ['csm-hit']
+      }
+    },
+
+    // --- Meta / Facebook Pixel ---
+    meta: {
+      id: 'meta',
+      label: 'Facebook / Meta Pixel',
+      shortLabel: 'META',
+      vendor: 'Meta',
+      category: 'commercial',
+      iconPath: 'images/platforms/meta.svg',
+      docsUrl: 'https://www.facebook.com/business/help/952192354843755',
+      color: '#1877F2',
+      priority: 2,
+      identificationHints: {
+        hosts: ['www.facebook.com', 'facebook.com', 'www.instagram.com'],
+        paths: ['/tr'],
+        queryKeys: ['id', 'ev', 'dl'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: ['fbq'],
+        cookies: ['_fbp', '_fbc']
+      }
+    },
+
+    // --- LinkedIn Insight Tag ---
+    linkedin: {
+      id: 'linkedin',
+      label: 'LinkedIn',
+      shortLabel: 'IN',
+      vendor: 'LinkedIn',
+      category: 'commercial',
+      iconPath: 'images/platforms/linkedin.svg',
+      docsUrl: 'https://www.linkedin.com/help/lms/answer/a427660',
+      color: '#0A66C2',
+      priority: 2,
+      identificationHints: {
+        hosts: ['px.ads.linkedin.com'],
+        paths: ['/collect', '/db_sync'],
+        queryKeys: ['pid', 'url', 'conversionId', 'eventId'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: ['lintrk'],
+        cookies: ['li_fat_id']
+      }
+    },
+
+    // --- Pinterest Tag ---
+    pinterest: {
+      id: 'pinterest',
+      label: 'Pinterest',
+      shortLabel: 'PIN',
+      vendor: 'Pinterest',
+      category: 'commercial',
+      iconPath: 'images/platforms/pinterest.svg',
+      docsUrl: 'https://help.pinterest.com/en/business/article/track-conversions-with-pinterest-tag',
+      color: '#E60023',
+      priority: 2,
+      identificationHints: {
+        hosts: ['ct.pinterest.com'],
+        paths: ['/v3/'],
+        queryKeys: ['tid', 'event'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: ['pintrk'],
+        cookies: ['_pinterest_ct_ua']
+      }
+    },
+
+    // --- Reddit Pixel ---
+    reddit: {
+      id: 'reddit',
+      label: 'Reddit Pixel',
+      shortLabel: 'RDT',
+      vendor: 'Reddit',
+      category: 'commercial',
+      iconPath: 'images/platforms/reddit.svg',
+      docsUrl: 'https://business.reddithelp.com/articles/Knowledge/Web-Attribution-Overview',
+      color: '#FF4500',
+      priority: 2,
+      identificationHints: {
+        hosts: ['alb.reddit.com'],
+        paths: ['/rp.gif'],
+        queryKeys: ['id', 'event', 'uuid'],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: ['rdt'],
+        cookies: ['_rdt_uuid']
+      }
+    },
+
+    // --- X Pixel ---
+    x: {
+      id: 'x',
+      label: 'X Pixel',
+      shortLabel: 'X',
+      vendor: 'X Corp',
+      category: 'commercial',
+      iconPath: 'images/platforms/x.svg',
+      docsUrl: 'https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites',
+      color: '#111111',
+      priority: 2,
+      identificationHints: {
+        hosts: ['analytics.twitter.com'],
+        paths: ['/i/adsct', '/i/adsctp'],
+        queryKeys: ['event', 'events', 'event_id', 'txn_id', 'tw_document_href', 'conversion_id', 'currency'],
+        headerKeys: [],
+        bodyKeys: ['event', 'event_id', 'txn_id', 'conversion_id', 'contents'],
+        globalVars: ['twq'],
+        cookies: ['personalization_id']
+      }
+    },
+
+    // --- Zhihu ZA / DataHub ---
+    zhihu: {
+      id: 'zhihu',
+      label: '知乎',
+      shortLabel: 'ZH',
+      vendor: 'Zhihu',
+      category: 'commercial',
+      iconPath: 'images/platforms/zhihu.svg',
+      docsUrl: '',
+      color: '#1677FF',
+      priority: 2,
+      identificationHints: {
+        hosts: ['zhihu-web-analytics.zhihu.com', 'datahub.zhihu.com', 'apm.zhihu.com'],
+        paths: ['/api/v2/za/logs/batch', '/api/v3inv2/za/logs/batch', '/collector/zlab', '/collector/apm'],
+        queryKeys: [],
+        headerKeys: ['x-za-platform', 'x-za-clientid', 'x-za-product'],
+        bodyKeys: [],
+        globalVars: [],
+        cookies: []
+      }
+    },
+
+    // --- Weibo Website Telemetry ---
+    weibo: {
+      id: 'weibo',
+      label: '微博',
+      shortLabel: 'WB',
+      vendor: 'Weibo / Sina',
+      category: 'commercial',
+      iconPath: 'images/platforms/weibo.svg',
+      docsUrl: '',
+      color: '#E6162D',
+      priority: 2,
+      identificationHints: {
+        hosts: [],
+        paths: ['/ajax/log/action', '/ajax/log/read', '/ajax/log/detectVideoCodecSupport'],
+        queryKeys: ['type', 'act_code', 'uicode', 'fid', 'ext', 'data'],
+        headerKeys: ['x-requested-with', 'x-xsrf-token', 'client-version'],
+        bodyKeys: ['data'],
+        globalVars: [],
+        cookies: ['SUB', 'XSRF-TOKEN']
+      }
+    },
+
+    // --- Snap Pixel ---
+    snap: {
+      id: 'snap',
+      label: 'Snap Pixel',
+      shortLabel: 'SNAP',
+      vendor: 'Snap',
+      category: 'commercial',
+      iconPath: 'images/platforms/snap.svg',
+      docsUrl: 'https://forbusiness.snapchat.com/learn-with-snap/web-success',
+      color: '#FFFC00',
+      priority: 2,
+      identificationHints: {
+        hosts: ['tr.snapchat.com'],
+        paths: ['/p', '/cm/i', '/cm/p'],
+        queryKeys: ['event', 'ev', 'transaction_id', 'price', 'currency', 'pid', 'pixel_id'],
+        headerKeys: [],
+        bodyKeys: ['event', 'transaction_id', 'price', 'currency', 'contents', 'item_ids'],
+        globalVars: ['snaptr'],
+        cookies: []
+      }
+    },
+
+    // --- Xiaohongshu (小红书) Ranger Analytics ---
+    xhs: {
+      id: 'xhs',
+      label: '小红书',
+      shortLabel: 'XHS',
+      vendor: 'Xiaohongshu',
+      category: 'commercial',
+      iconPath: 'images/platforms/xhs.png',
+      docsUrl: '',
+      color: '#FF2442',
+      priority: 1,
+      identificationHints: {
+        hosts: ['t2.xiaohongshu.com'],
+        paths: ['/api/v2/collect'],
+        queryKeys: [],
+        headerKeys: [],
+        bodyKeys: [],
+        globalVars: [],
+        cookies: []
       }
     },
 

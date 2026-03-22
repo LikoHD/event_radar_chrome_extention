@@ -22,8 +22,26 @@ All icons in this directory are custom-created SVG representations inspired by e
 | `heap.svg` | Heap | Bold "H" letterform | #7B5CFF (purple) |
 | `hotjar.svg` | Hotjar | Flame/fire icon | #FF3C00 (orange) |
 | `clarity.svg` | Microsoft Clarity | Concentric arcs forming lens/eye shape | #0078D4 (blue) |
+| `microsoft-uet.svg` | Microsoft UET | Teal UET monogram badge | #008373 (teal) |
 | `adobe.svg` | Adobe Analytics | Stylized "A" triangle with cut sections | #FF0000 (red) |
 | `unknown.svg` | Unknown/Generic | Question mark inside a circle | #9CA3AF (gray) |
+| `alibaba.svg` | Alibaba / Taobao | Orange monogram badge | #FF6A00 (orange) |
+| `tencent.svg` | Tencent / QQ | Blue QQ monogram badge | #0F7BFF (blue) |
+| `netease.svg` | NetEase | Red WY monogram badge | #E60012 (red) |
+| `didi.svg` | DiDi | Orange D monogram badge | #FF7A00 (orange) |
+| `meituan.svg` | Meituan | Yellow M monogram badge | #FFD100 (yellow) |
+| `jd.svg` | JD.com | Red JD monogram badge | #E2231A (red) |
+| `bilibili.svg` | Bilibili | Cyan B monogram badge | #00A1D6 (cyan) |
+| `ctrip.svg` | Ctrip | Blue C monogram badge | #1A73E8 (blue) |
+| `amazon.svg` | Amazon | Orange smile arrow badge | #FF9900 (orange) |
+| `meta.svg` | Facebook / Meta Pixel | Blue circular M badge | #1877F2 (blue) |
+| `linkedin.svg` | LinkedIn Insight Tag | Blue "in" monogram badge | #0A66C2 (blue) |
+| `pinterest.svg` | Pinterest Tag | Red circular P badge | #E60023 (red) |
+| `reddit.svg` | Reddit Pixel | Orange circular R badge | #FF4500 (orange) |
+| `x.svg` | X Pixel | Black X monogram badge | #111111 (black) |
+| `zhihu.svg` | Zhihu | Blue ZH monogram badge | #1677FF (blue) |
+| `weibo.svg` | Weibo | Red eye-wave badge | #E6162D (red) |
+| `snap.svg` | Snap Pixel | Yellow S monogram badge | #FFFC00 (yellow) |
 
 ## Design Specifications
 
@@ -36,7 +54,7 @@ All icons in this directory are custom-created SVG representations inspired by e
 
 ## Usage
 
-These icons are used in the Tea Event Radar Chrome extension panel to visually identify which analytics platform(s) are detected on a webpage. They are referenced by platform key (filename without extension) in the platform catalog module.
+These icons are used in the Tea Event Radar Chrome extension panel to visually identify which analytics platform(s) are detected on a webpage. They are referenced by platform key in the platform catalog module; legacy entries may still use `.png`, while newer entries use lightweight inline `.svg` assets.
 
 ## License
 

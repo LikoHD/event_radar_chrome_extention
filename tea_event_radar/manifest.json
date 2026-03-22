@@ -1,6 +1,6 @@
 {
-  "name": "埋点雷达-查看网站上报埋点Event Radar",
-  "version": "1.0.3",
+  "name": "埋点大师-查看网站上报数据埋点-EventRadar",
+  "version": "1.0.5",
   "description": "优雅展示网页埋点上报信息，支持搜索、过滤、复制",
   "manifest_version": 3,
   "permissions": [

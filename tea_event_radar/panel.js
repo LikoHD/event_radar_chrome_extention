@@ -617,6 +617,7 @@ function createEventCard(event) {
         url: event.url,
         method: event.method,
         bodyRaw: event.requestData || '',
+        bodyBase64: event.requestBodyBase64 || '',
         headers: event.headers || [],
         contentType: ''
       });
@@ -1324,6 +1325,28 @@ function generateCSV(events) {
       let eventParams = '';
       let rawData = '';
 
+      if (event.platformId && event.platformId !== 'unknown' && window.TeaRadar && window.TeaRadar.PlatformAdapters) {
+        try {
+          const normalized = window.TeaRadar.PlatformAdapters.parseRequest(event.platformId, {
+            url: event.url,
+            method: event.method,
+            bodyRaw: event.requestData || '',
+            bodyBase64: event.requestBodyBase64 || '',
+            headers: event.headers || [],
+            contentType: ''
+          });
+
+          if (normalized && normalized.length > 0) {
+            const first = normalized[0];
+            eventName = first.eventName || '';
+            userId = first.userId || first.distinctId || first.anonymousId || '';
+            eventParams = JSON.stringify(first.properties || {}).replace(/"/g, '""');
+          }
+        } catch (error) {
+          // ignore adapter parse failure and fall back to raw requestData parsing below
+        }
+      }
+
       // 解析请求数据
       if (event.requestData) {
         try {
@@ -1334,14 +1357,14 @@ function generateCSV(events) {
             const firstItem = parsedData[0];
 
             // 提取用户ID
-            if (firstItem.user && firstItem.user.user_unique_id) {
+            if (!userId && firstItem.user && firstItem.user.user_unique_id) {
               userId = firstItem.user.user_unique_id;
             }
 
             // 提取事件信息
             if (firstItem.events && Array.isArray(firstItem.events)) {
               const eventNames = firstItem.events.map(e => e.event || '').filter(Boolean);
-              eventName = eventNames.join('; ');
+              if (!eventName) eventName = eventNames.join('; ');
 
               // 提取事件参数
               const allParams = firstItem.events.map(e => {
@@ -1355,7 +1378,7 @@ function generateCSV(events) {
                 }
                 return '';
               }).filter(Boolean);
-              eventParams = allParams.join('; ');
+              if (!eventParams) eventParams = allParams.join('; ');
             }
           }
         } catch (parseError) {
