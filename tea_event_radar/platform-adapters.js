@@ -2129,9 +2129,17 @@
         score += 0.55;
         reasons.push('host:otheve.beacon.qq.com');
       }
+      if (Core.hostMatches(ctx.host, 'snowflake.qq.com')) {
+        score += 0.5;
+        reasons.push('host:snowflake.qq.com');
+      }
       if (Core.pathMatches(ctx.path, '/analytics/v2_upload')) {
         score += 0.3;
         reasons.push('path:/analytics/v2_upload');
+      }
+      if (Core.pathMatches(ctx.path, '/ola/v2')) {
+        score += 0.2;
+        reasons.push('path:/ola/v2');
       }
       if (ctx.query.appkey) {
         score += 0.1;
@@ -2501,9 +2509,17 @@
         score += 0.55;
         reasons.push('host:data.bilibili.com');
       }
+      if (Core.hostMatches(ctx.host, 'cm.bilibili.com')) {
+        score += 0.55;
+        reasons.push('host:cm.bilibili.com');
+      }
       if (Core.pathMatches(ctx.path, '/log/web') || Core.pathMatches(ctx.path, '/v2/log/web')) {
         score += 0.3;
         reasons.push('path:bili-log');
+      }
+      if (Core.pathMatches(ctx.path, '/cm/api/fees/pc') || Core.pathMatches(ctx.path, '/cm/api/')) {
+        score += 0.3;
+        reasons.push('path:bili-cm-api');
       }
       if (ctx.query.content_type || ctx.query.spm_id_from) {
         score += 0.1;
@@ -2594,6 +2610,47 @@
         return candidates;
       }
 
+      // ---- cm.bilibili.com: uploads[] ad exposure/click tracking ----
+      if (Core.hostMatches(ctx.host, 'cm.bilibili.com')) {
+        var cmBodyJson = extractJsonFromText(ctx.bodyStr || '');
+        var uploads = (cmBodyJson && Array.isArray(cmBodyJson.uploads)) ? cmBodyJson.uploads : [];
+        if (uploads.length === 0 && cmBodyJson && !Array.isArray(cmBodyJson)) {
+          uploads = [cmBodyJson];
+        }
+
+        return uploads.map(function (item) {
+          var eventName = firstNonEmptyValue(item.event, 'bili_cm_upload');
+          var userId = String(item.mid || '');
+          var anonId = firstNonEmptyValue(
+            item.track_id ? item.track_id.split('.')[0] : '',
+            item.request_id || '',
+            ''
+          );
+          return Core.createNormalizedEvent({
+            platform: 'bilibili',
+            eventName: eventName,
+            userId: userId,
+            anonymousId: anonId,
+            distinctId: userId || anonId,
+            eventTime: Core.normalizeTimestamp(item.ts || ''),
+            properties: Core.decodeObjectStrings({
+              srcId: item.src_id || '',
+              resourceId: item.resource_id || '',
+              isAd: item.is_ad,
+              area: item.area,
+              isVisible: item.is_visible,
+              idx: item.idx,
+              requestId: item.request_id || '',
+              trackId: item.track_id || '',
+              adServer: item.ad_server || '',
+              serverType: item.server_type,
+              loadTs: item.load_ts || ''
+            }),
+            rawEvent: item
+          });
+        });
+      }
+
       if (!Core.pathMatches(ctx.path, '/v2/log/web') && Core.pathMatches(ctx.path, '/log/web')) {
         var rawSearch = ctx.search ? ctx.search.slice(1) : '';
         var decodedSearch = safeDecodeURIComponentLoose(rawSearch);
@@ -2605,10 +2662,36 @@
           if (parsed) jsonObjects.push(parsed);
         }
 
+        // Extract SPM event name: format like "333.1007.ad.card.tech" (pipe segment starting with digits)
+        var spmSegment = '';
+        for (var si = 0; si < Math.min(segments.length, 6); si++) {
+          var seg = (segments[si] || '').trim();
+          if (/^\d{2,4}\.\d{3,5}\.[a-z][\w.]+/i.test(seg)) {
+            spmSegment = seg;
+            break;
+          }
+        }
+
+        // Extract infoc session ID: e.g. "A3CB5451-E3D10-CDF7-5A19-3CB644986BBB93309infoc"
+        var infocSession = '';
+        for (var si2 = 0; si2 < segments.length; si2++) {
+          if (/^[A-F0-9]{8}-[A-F0-9]{3,5}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{8,}\d+infoc$/i.test((segments[si2] || '').trim())) {
+            infocSession = segments[si2].trim();
+            break;
+          }
+        }
+
+        // Extract lsid from JSON payloads (B站 browser session)
+        var lsid = firstNonEmptyValue(
+          deepFindValue(jsonObjects, function (key) { return key === 'lsid'; }),
+          ''
+        );
+
         var eventName = firstNonEmptyValue(
           deepFindValue(jsonObjects, function (key, value) {
             return (key === 'event' || key === 'eventName') && typeof value === 'string';
           }),
+          spmSegment,
           findLikelyEventName(segments),
           'bili_web_log'
         );
@@ -2623,6 +2706,8 @@
           deepFindValue(jsonObjects, function (key) {
             return /^(buvid_fp|buvid4|buvid3|_uuid|uuid)$/.test(key);
           }),
+          lsid,
+          infocSession,
           ''
         );
         var eventTime = firstNonEmptyValue(
@@ -2642,7 +2727,9 @@
           eventTime: Core.normalizeTimestamp(eventTime),
           properties: Core.decodeObjectStrings({
             pageUrl: pageUrl,
-            spm: ctx.query.spm_id_from || '',
+            spm: spmSegment || ctx.query.spm_id_from || '',
+            lsid: lsid,
+            infocSession: infocSession,
             contentType: ctx.query.content_type || '',
             parsedPayload: jsonObjects.length === 1 ? jsonObjects[0] : jsonObjects.slice(0, 3),
             rawSegments: segments.slice(0, 16)
