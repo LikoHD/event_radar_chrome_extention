@@ -1659,6 +1659,459 @@
   };
 
   // =========================================================================
+  // ADAPTER: Xiaohongshu (小红书) Ranger Analytics
+  // =========================================================================
+  //
+  // XHS sends a base64-encoded protobuf binary string as the HTTP body.
+  // Decoded protobuf structure:
+  //   field[1]  nested proto  App context: scene (subfield 2), platform (subfield 7), sdkVersion (subfield 8)
+  //   field[3]  nested proto  User session: userId (subfield 1)
+  //   field[7]  nested proto  Session context: sessionId (subfield 1)
+  //   field[8]  nested proto  Event payload: JSON embedded in raw bytes (url, navigationStart, ...)
+  //   field[9]  nested proto  Device context: deviceId (subfield 1), pageUrl (subfield 3), route (subfield 4)
+  // =========================================================================
+
+  var xhsAdapter = {
+    id: 'xhs',
+
+    matcher: function (request) {
+      var ctx = prepareRequestContext(request);
+      var score = 0;
+      var reasons = [];
+
+      if (Core.hostMatches(ctx.host, 't2.xiaohongshu.com')) {
+        score += 0.6;
+        reasons.push('host:t2.xiaohongshu.com');
+      }
+      if (ctx.path.indexOf('/api/v2/collect') !== -1) {
+        score += 0.4;
+        reasons.push('path:/api/v2/collect');
+      }
+
+      return matchResult(score >= 0.4, score, reasons);
+    },
+
+    parser: function (request) {
+      var ctx = prepareRequestContext(request);
+
+      // XHS Ranger body = base64-encoded protobuf binary
+      var bodyStr = (ctx.bodyStr || '').trim();
+      var cleanedBody = bodyStr.replace(/^"|"$/g, '').replace(/\s+/g, '');
+      if (cleanedBody.indexOf('%') !== -1) {
+        try { cleanedBody = decodeURIComponent(cleanedBody); } catch (e) { /* keep original */ }
+      }
+      cleanedBody = cleanedBody.replace(/-/g, '+').replace(/_/g, '/');
+      while (cleanedBody.length % 4 !== 0) cleanedBody += '=';
+
+      var binaryStr = '';
+      try {
+        binaryStr = atob(cleanedBody);
+      } catch (e) {
+        return [Core.createNormalizedEvent({
+          platform: 'xhs',
+          eventName: 'xhs_collect',
+          properties: { requestUrl: ctx.url },
+          rawEvent: null
+        })];
+      }
+
+      // Binary string -> Uint8Array
+      var bytes = new Uint8Array(binaryStr.length);
+      for (var i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i) & 0xFF;
+      }
+
+      // Minimal protobuf parser
+      function readVarint(buf, pos) {
+        var result = 0;
+        var shift = 0;
+        while (pos < buf.length) {
+          var b = buf[pos++];
+          result += (b & 0x7F) * Math.pow(2, shift);
+          if (!(b & 0x80)) break;
+          shift += 7;
+          if (shift > 56) break;
+        }
+        return { value: result, pos: pos };
+      }
+
+      function parseFields(buf, start, endPos) {
+        var fields = {};
+        var entries = [];
+        var pos = (start === undefined) ? 0 : start;
+        var end = (endPos === undefined) ? buf.length : endPos;
+        while (pos < end && pos < buf.length) {
+          var fieldStart = pos;
+          var tagR = readVarint(buf, pos);
+          pos = tagR.pos;
+          if (tagR.value === 0) break;
+          var fn = tagR.value >>> 3;
+          var wt = tagR.value & 7;
+          if (wt === 0) {
+            var vr = readVarint(buf, pos);
+            pos = vr.pos;
+            if (!fields[fn]) fields[fn] = [];
+            fields[fn].push({ type: 'varint', value: vr.value });
+            entries.push({
+              fieldNumber: fn,
+              wireType: wt,
+              type: 'varint',
+              value: vr.value,
+              start: fieldStart,
+              end: pos
+            });
+          } else if (wt === 1) {
+            pos += 8;
+          } else if (wt === 2) {
+            var lr = readVarint(buf, pos);
+            pos = lr.pos;
+            if (lr.value < 0 || pos + lr.value > buf.length) break;
+            var raw = buf.slice(pos, pos + lr.value);
+            pos += lr.value;
+            if (!fields[fn]) fields[fn] = [];
+            fields[fn].push({ type: 'bytes', raw: raw });
+            entries.push({
+              fieldNumber: fn,
+              wireType: wt,
+              type: 'bytes',
+              raw: raw,
+              start: fieldStart,
+              end: pos
+            });
+          } else if (wt === 5) {
+            pos += 4;
+          } else {
+            break;
+          }
+        }
+        return { fields: fields, entries: entries };
+      }
+
+      function bytesToUtf8(raw) {
+        try { return new TextDecoder('utf-8').decode(raw); } catch (e) { return ''; }
+      }
+
+      function getString(fields, fn) {
+        return (fields[fn] && fields[fn][0] && fields[fn][0].raw)
+          ? bytesToUtf8(fields[fn][0].raw) : '';
+      }
+
+      function trimProtoText(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text.replace(/\u0000/g, '').replace(/\s+/g, ' ').trim();
+      }
+
+      function isMostlyPrintable(text) {
+        if (!text) return false;
+        var printable = 0;
+        for (var k = 0; k < text.length; k++) {
+          var code = text.charCodeAt(k);
+          if ((code >= 32 && code !== 127) || code === 9 || code === 10 || code === 13) {
+            printable++;
+          }
+        }
+        return printable / text.length >= 0.85;
+      }
+
+      function pushUnique(arr, value) {
+        if (!value) return;
+        if (arr.indexOf(value) === -1) arr.push(value);
+      }
+
+      function looksLikeTimestamp(value) {
+        var num = Number(value);
+        if (!isFinite(num)) return 0;
+        if (num >= 1000000000000 && num <= 9999999999999) return Math.floor(num);
+        return 0;
+      }
+
+      function looksLikeRoutePattern(text) {
+        return /^\/[A-Za-z0-9_:/-]+$/.test(text) &&
+          (text.indexOf('/:') !== -1 || text.indexOf('/explore/') === 0 || text.indexOf('/user/') === 0);
+      }
+
+      function looksLikeScene(text) {
+        return /^[a-z0-9_-]+(?:-[a-z0-9_-]+)+$/i.test(text) &&
+          text.indexOf('http') !== 0 &&
+          text.indexOf('/') === -1 &&
+          text.indexOf('.') === -1;
+      }
+
+      function looksLikeSdkVersion(text) {
+        return /^\d+\.\d+(?:\.\d+){0,2}(?:[-+._A-Za-z0-9]+)?$/.test(text);
+      }
+
+      function looksLikePlatform(text) {
+        return /^(web|h5|ios|android|miniapp|wx|pc)$/i.test(text);
+      }
+
+      function tryExtractJson(text) {
+        if (!text) return null;
+        var start = text.indexOf('{');
+        if (start === -1) return null;
+        for (var end = text.lastIndexOf('}'); end > start; end = text.lastIndexOf('}', end - 1)) {
+          try {
+            return JSON.parse(text.slice(start, end + 1));
+          } catch (e) { /* keep scanning */ }
+        }
+        return null;
+      }
+
+      function createHintBag() {
+        return {
+          strings: [],
+          urls: [],
+          apiUrls: [],
+          pageUrls: [],
+          routePatterns: [],
+          scenes: [],
+          platforms: [],
+          sdkVersions: [],
+          directTimestamps: [],
+          timestamps: []
+        };
+      }
+
+      function addTextHint(hints, text) {
+        var clean = trimProtoText(text);
+        if (!clean || !isMostlyPrintable(clean) || clean.indexOf('\uFFFD') !== -1) return;
+
+        pushUnique(hints.strings, clean);
+
+        if (/^https?:\/\//i.test(clean)) {
+          pushUnique(hints.urls, clean);
+          if (/t2\.xiaohongshu\.com/i.test(clean) || /\/api\//i.test(clean)) {
+            pushUnique(hints.apiUrls, clean);
+          } else if (/xiaohongshu\.com/i.test(clean)) {
+            pushUnique(hints.pageUrls, clean);
+          }
+          return;
+        }
+
+        if (looksLikeRoutePattern(clean)) pushUnique(hints.routePatterns, clean);
+        if (looksLikeScene(clean)) pushUnique(hints.scenes, clean);
+        if (looksLikePlatform(clean)) pushUnique(hints.platforms, clean.toLowerCase());
+        if (looksLikeSdkVersion(clean)) pushUnique(hints.sdkVersions, clean);
+
+        var ts = looksLikeTimestamp(clean);
+        if (ts) pushUnique(hints.timestamps, ts);
+      }
+
+      function collectHintsFromJson(value, hints, keyHint) {
+        if (value == null) return;
+
+        if (typeof value === 'string') {
+          addTextHint(hints, value);
+          var loweredKey = (keyHint || '').toLowerCase();
+          if (loweredKey.indexOf('route') !== -1 || loweredKey.indexOf('path') !== -1) {
+            if (looksLikeRoutePattern(value)) pushUnique(hints.routePatterns, trimProtoText(value));
+          }
+          if (loweredKey.indexOf('scene') !== -1) {
+            if (looksLikeScene(value)) pushUnique(hints.scenes, trimProtoText(value));
+          }
+          return;
+        }
+
+        if (typeof value === 'number') {
+          var ts = looksLikeTimestamp(value);
+          if (ts) pushUnique(hints.timestamps, ts);
+          return;
+        }
+
+        if (Array.isArray(value)) {
+          for (var m = 0; m < value.length; m++) {
+            collectHintsFromJson(value[m], hints, keyHint);
+          }
+          return;
+        }
+
+        if (typeof value === 'object') {
+          for (var jsonKey in value) {
+            if (!value.hasOwnProperty(jsonKey)) continue;
+            var child = value[jsonKey];
+            var lowerKey = jsonKey.toLowerCase();
+
+            if (typeof child === 'string') {
+              if (lowerKey === 'scene' && looksLikeScene(child)) {
+                pushUnique(hints.scenes, trimProtoText(child));
+              }
+              if (lowerKey === 'pageurl' || lowerKey === 'page_url') {
+                pushUnique(hints.pageUrls, trimProtoText(child));
+              }
+              if (lowerKey === 'routepattern' || lowerKey === 'route_pattern' || lowerKey === 'route') {
+                pushUnique(hints.routePatterns, trimProtoText(child));
+              }
+              if (lowerKey === 'sdkversion' || lowerKey === 'sdk_version') {
+                pushUnique(hints.sdkVersions, trimProtoText(child));
+              }
+              if (lowerKey === 'platform') {
+                pushUnique(hints.platforms, trimProtoText(child).toLowerCase());
+              }
+              if (lowerKey === 'url') {
+                var cleanUrl = trimProtoText(child);
+                if (/t2\.xiaohongshu\.com/i.test(cleanUrl) || /\/api\//i.test(cleanUrl)) {
+                  pushUnique(hints.apiUrls, cleanUrl);
+                } else if (/xiaohongshu\.com/i.test(cleanUrl)) {
+                  pushUnique(hints.pageUrls, cleanUrl);
+                }
+              }
+              var nestedJson = tryExtractJson(child);
+              if (nestedJson) collectHintsFromJson(nestedJson, hints, jsonKey);
+            } else if (typeof child === 'number') {
+              if (lowerKey.indexOf('time') !== -1 || lowerKey.indexOf('ts') !== -1 || lowerKey.indexOf('navigationstart') !== -1) {
+                var childTs = looksLikeTimestamp(child);
+                if (childTs) pushUnique(hints.directTimestamps, childTs);
+              }
+            }
+
+            collectHintsFromJson(child, hints, jsonKey);
+          }
+        }
+      }
+
+      function collectProtoHints(raw, hints, depth) {
+        if (!raw || !raw.length || depth > 4) return;
+
+        var text = bytesToUtf8(raw);
+        var cleanText = trimProtoText(text);
+        if (cleanText) {
+          addTextHint(hints, cleanText);
+          var json = tryExtractJson(cleanText);
+          if (json) collectHintsFromJson(json, hints, '');
+        }
+
+        var parsed = parseFields(raw);
+        if (!parsed.entries.length) return;
+
+        for (var n = 0; n < parsed.entries.length; n++) {
+          var entry = parsed.entries[n];
+          if (entry.type === 'varint') {
+            var entryTs = looksLikeTimestamp(entry.value);
+            if (entryTs) pushUnique(hints.timestamps, entryTs);
+            continue;
+          }
+          if (!entry.raw || !entry.raw.length) continue;
+
+          var childText = trimProtoText(bytesToUtf8(entry.raw));
+          if (childText) {
+            addTextHint(hints, childText);
+            var childJson = tryExtractJson(childText);
+            if (childJson) collectHintsFromJson(childJson, hints, '');
+          }
+
+          collectProtoHints(entry.raw, hints, depth + 1);
+        }
+      }
+
+      function firstNonEmpty() {
+        for (var p = 0; p < arguments.length; p++) {
+          if (arguments[p]) return arguments[p];
+        }
+        return '';
+      }
+
+      function inferApiUrl(hints) {
+        if (hints.apiUrls.length > 0) return hints.apiUrls[0];
+        return '';
+      }
+
+      function inferPageUrl(hints) {
+        if (hints.pageUrls.length > 0) return hints.pageUrls[0];
+        return '';
+      }
+
+      function inferEventName(apiUrl) {
+        if (!apiUrl) return 'xhs_collect';
+        try {
+          var pathname = new URL(apiUrl).pathname.replace(/\/$/, '');
+          var parts = pathname.split('/').filter(Boolean);
+          return parts.length ? parts[parts.length - 1] : 'xhs_collect';
+        } catch (e) {
+          var cleaned = apiUrl.replace(/\?.*$/, '').replace(/\/$/, '');
+          var segments = cleaned.split('/');
+          return segments[segments.length - 1] || 'xhs_collect';
+        }
+      }
+
+      var outerParsed = parseFields(bytes);
+      var outer = outerParsed.fields;
+
+      // field[1]: app header → scene, platform, sdkVersion
+      var scene = '', platform = '', sdkVersion = '';
+      if (outer[1] && outer[1][0] && outer[1][0].raw) {
+        var hdr = parseFields(outer[1][0].raw).fields;
+        scene      = getString(hdr, 2);
+        platform   = getString(hdr, 7);
+        sdkVersion = getString(hdr, 8);
+      }
+
+      // field[3]: user session → userId
+      var userId = '';
+      if (outer[3] && outer[3][0] && outer[3][0].raw) {
+        var sess = parseFields(outer[3][0].raw).fields;
+        userId = getString(sess, 1);
+      }
+
+      // field[7]: session context → sessionId
+      var sessionId = '';
+      if (outer[7] && outer[7][0] && outer[7][0].raw) {
+        var sess7 = parseFields(outer[7][0].raw).fields;
+        sessionId = getString(sess7, 1);
+      }
+
+      // field[9]: device/browser context → deviceId, pageUrl, routePattern
+      var deviceId = '', pageUrl = '', routePattern = '';
+      if (outer[9] && outer[9][0] && outer[9][0].raw) {
+        var dev = parseFields(outer[9][0].raw).fields;
+        deviceId     = getString(dev, 1);
+        pageUrl      = getString(dev, 3);
+        routePattern = getString(dev, 4);
+      }
+
+      // Recursively walk the protobuf tree to recover fields even when the
+      // nested structure shifts between builds.
+      var hints = createHintBag();
+      collectProtoHints(bytes, hints, 0);
+
+      var eventUrl = inferApiUrl(hints);
+      pageUrl = firstNonEmpty(pageUrl, inferPageUrl(hints));
+      routePattern = firstNonEmpty(routePattern, hints.routePatterns[0] || '');
+      scene = firstNonEmpty(scene, hints.scenes[0] || '');
+      platform = firstNonEmpty(platform, hints.platforms[0] || '');
+      sdkVersion = firstNonEmpty(sdkVersion, hints.sdkVersions[0] || '');
+      var eventTime = 0;
+      if (hints.directTimestamps.length > 0) {
+        eventTime = Math.max.apply(null, hints.directTimestamps);
+      } else if (hints.timestamps.length > 0) {
+        eventTime = Math.max.apply(null, hints.timestamps);
+      }
+
+      // Derive event name from the tracked API URL's last path segment.
+      var eventName = inferEventName(eventUrl);
+
+      var props = {};
+      if (scene)        props.scene        = scene;
+      if (platform)     props.platform     = platform;
+      if (sdkVersion)   props.sdkVersion   = sdkVersion;
+      if (eventUrl)     props.apiUrl       = eventUrl;
+      if (pageUrl)      props.pageUrl      = pageUrl;
+      if (routePattern) props.routePattern = routePattern;
+      if (eventTime)    props.eventTime    = eventTime;
+
+      return [Core.createNormalizedEvent({
+        platform: 'xhs',
+        eventName: eventName,
+        userId: userId,
+        anonymousId: deviceId || sessionId,
+        distinctId: userId || deviceId || sessionId,
+        eventTime: eventTime ? String(eventTime) : '',
+        properties: props,
+        rawEvent: props
+      })];
+    }
+  };
+
+  // =========================================================================
   // ALL ADAPTERS REGISTRY
   // =========================================================================
 
@@ -1671,6 +2124,7 @@
     sensorsAdapter,       // P1
     googleAdapter,        // P1
     baiduAdapter,         // P1
+    xhsAdapter,           // P1
     growingioAdapter,      // P2
     mixpanelAdapter,      // P2
     segmentAdapter,       // P2
