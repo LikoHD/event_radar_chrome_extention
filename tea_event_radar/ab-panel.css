@@ -1,0 +1,94 @@
+.radar-tabs{display:flex;gap:16px;align-items:stretch;min-height:48px;padding:0;border:0;margin:0}
+.radar-tabs button,.ab-view button,.ai-settings button,.ab-dialog button{cursor:pointer;border:1px solid #e5e6eb;background:#fafbfc;color:#2f2f3f;border-radius:4px;min-height:32px;padding:0 12px;font:inherit;font-size:12px;transition:color 150ms,background-color 150ms,border-color 150ms}
+.radar-tabs button{display:flex;align-items:center;gap:7px;position:relative;min-height:48px;padding:0;border:0;border-radius:0;background:transparent;color:#737a87;font-size:13px;white-space:nowrap}
+.radar-tabs button::after{content:"";position:absolute;right:0;bottom:0;left:0;height:2px;background:transparent}
+.radar-tabs button[aria-selected=true]{background:transparent;color:#3073f2;font-weight:600}
+.radar-tabs button[aria-selected=true]::after{background:#3073f2}
+.radar-tabs .header-icon{width:20px;height:20px;object-fit:contain;flex-shrink:0}
+.radar-tabs .ai-entry{margin-left:auto;font-size:11px}
+.ab-view button.primary,.ai-settings button.primary{background:#3073f2;color:#fff;border-color:#3073f2}
+.ab-view button:hover:not(:disabled),.ai-settings button:hover:not(:disabled),.ab-dialog button:hover:not(:disabled){color:#3073f2;border-color:#9cbbfa;background:#eef4ff}
+.ab-view button.primary:hover:not(:disabled),.ai-settings button.primary:hover:not(:disabled){color:#fff;background:#2464da;border-color:#2464da}
+.radar-tabs button:hover{color:#3073f2;background:transparent}
+.radar-tabs button:focus-visible,.ab-view button:focus-visible,.ai-settings button:focus-visible,.ab-dialog button:focus-visible,.ab-card summary:focus-visible,.ab-view a:focus-visible{outline:2px solid #3073f2;outline-offset:3px}
+.ab-mode .search-filter-row,.ab-mode #searchTags,.ab-mode .events-container,.ab-mode .container>footer{display:none!important}
+.ab-view{display:none;padding:16px;overflow:auto;flex:1;min-height:0;background:#f8f9fc;color:#2f2f3f;font:12px/1.6 Inter,-apple-system,system-ui,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.ab-mode .ab-view{display:block}
+.ab-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ab-stats{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 14px}
+.ab-stat{display:flex;align-items:baseline;gap:4px;padding:0;background:transparent;border:0}
+.ab-stat strong{display:inline;font-size:12px;line-height:1.4;font-weight:600;font-variant-numeric:tabular-nums;color:#2f2f3f}
+.ab-stat span{font-size:10px;color:#737a87}
+.ab-note{color:#737a87;line-height:1.7;margin:10px 0;overflow-wrap:anywhere}
+.ab-error{color:#c9363e;white-space:pre-wrap;overflow-wrap:anywhere}
+.ab-subnav{display:flex;gap:20px;margin:16px 0 12px;border-bottom:1px solid #e5e6eb}
+.ab-subnav button{position:relative;min-height:36px;padding:0 0 9px;border:0;border-radius:0;color:#737a87;background:transparent}
+.ab-subnav button[aria-selected=true]{color:#3073f2;background:transparent;font-weight:600}
+.ab-subnav button[aria-selected=true]::after{content:"";position:absolute;right:0;bottom:-1px;left:0;height:2px;background:#3073f2}
+.ab-subnav button:hover:not(:disabled){background:transparent}
+.ab-search{box-sizing:border-box;width:100%;min-height:32px;padding:6px 10px;border:1px solid #e5e6eb;border-radius:4px;margin-bottom:12px;background:#fff;color:#2f2f3f;font:inherit;font-size:13px;transition:border-color 150ms,box-shadow 150ms}
+.ab-search::placeholder,.ai-settings input::placeholder{color:#8f95a1}
+.ab-search:focus,.ai-settings input:focus{outline:none;border-color:#3073f2;box-shadow:0 0 0 2px #3073f21a}
+.ab-card{border:1px solid #e5e6eb;border-radius:8px;padding:14px;margin-bottom:10px;background:#fff}
+.ab-card summary{cursor:pointer;list-style:none}
+.ab-card summary strong{display:block;overflow-wrap:anywhere;font-size:14px;font-weight:600}
+.ab-badge{display:inline-block;margin:7px 5px 0 0;padding:2px 6px;background:#eef4ff;color:#416ba8;border-radius:4px;font-size:10px}
+.ab-card p{line-height:1.6;overflow-wrap:anywhere;margin:8px 0}
+.ab-view pre,.ai-settings pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8f9fc;border:1px solid #edf0f4;padding:10px;border-radius:4px;font-size:11px;max-height:330px;overflow:auto}
+.ab-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ab-empty{text-align:center;padding:40px 16px;color:#737a87;line-height:1.8}
+.ab-dialog{margin:auto;box-sizing:border-box;max-width:650px;width:calc(100% - 32px);max-height:calc(100vh - 32px);overflow:auto;border:1px solid #e5e6eb;border-radius:8px;padding:20px;color:#2f2f3f;background:#fff;box-shadow:0 12px 40px #202b4226;font:13px/1.6 Inter,-apple-system,system-ui,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.ab-dialog::backdrop{background:#1d273b66}
+.ab-dialog pre{max-height:50vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#f8f9fc;border-radius:4px;padding:12px;font-size:11px}
+.ab-view button:disabled,.ai-settings button:disabled,.ab-dialog button:disabled{opacity:.5;cursor:wait}
+body.ai-settings-page{margin:0;padding:24px;background:#f8f9fc}
+.ai-settings{box-sizing:border-box;font:14px/1.6 Inter,-apple-system,system-ui,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;max-width:700px;margin:24px auto;padding:28px;color:#2f2f3f;background:#fff;border:1px solid #e5e6eb;border-radius:8px}
+.ai-settings h1{font-size:16px;line-height:1.4;font-weight:600;margin:0 0 12px}
+.ai-settings label{display:block;margin:18px 0 6px;font-size:13px;font-weight:500}
+.ai-settings input{box-sizing:border-box;width:100%;min-height:32px;padding:6px 10px;border:1px solid #e5e6eb;border-radius:4px;font:inherit;font-size:13px;background:#fff;color:#2f2f3f;transition:border-color 150ms,box-shadow 150ms}
+.ai-settings .ab-toolbar{margin-top:20px}
+.ai-settings #status{overflow-wrap:anywhere}
+.settings-panel .ai-settings{width:100%;max-width:none;margin:0 0 12px;padding:16px;border:1px solid #e5e6eb;border-radius:8px;background:#fff;font-size:12px}
+.settings-panel .ai-settings h1,.settings-panel .ai-settings h3{font-size:14px;margin:0 0 8px;font-weight:600}
+.settings-panel .ai-settings label{margin-top:14px}
+.settings-panel .ai-settings .ab-toolbar{margin-top:16px}
+.ab-findings{border-left:3px solid #3073f2;padding-left:12px}
+.ab-time{border-top:1px solid #edf0f4;padding-top:8px;margin-top:8px;color:#737a87}
+.ab-view h3{font-size:14px;font-weight:600;margin:16px 0 8px}
+.ab-record-link{word-break:break-all}
+.ab-view a{color:#3073f2;text-decoration:none}
+.ab-view a:hover{text-decoration:underline}
+@media(max-width:360px){.ab-view{padding:12px}.ab-stats{gap:6px}.ab-toolbar{gap:6px}.ab-view button,.ai-settings button{padding-right:9px;padding-left:9px}.ai-settings{padding:20px}body.ai-settings-page{padding:12px}}
+
+#abAITools[hidden]{display:none}
+
+.ab-filter-row{display:flex;align-items:center;gap:8px}
+.ab-filter-row select{width:124px;min-width:0;min-height:34px;padding:6px 8px;border:1px solid #e5e6eb;border-radius:4px;background:#fff;color:#2f2f3f;font:inherit}
+.ab-filter-row .search-box{flex:1;min-width:0}
+.ab-filter-row .ab-search{margin:0;min-height:34px;padding-left:30px;font-size:12px}
+.ab-filter-row select:focus-visible{outline:2px solid #3073f2;outline-offset:2px}
+.ab-error:empty{display:none}
+
+.ab-view button.ab-stat{min-height:24px;padding:0 2px;border:0;border-radius:3px;background:transparent;font-size:11px;gap:4px}
+.ab-view button.ab-stat:hover{background:#eef4ff}
+.ab-subnav{gap:16px}
+.ab-summary-section>summary{font-weight:600}
+.ab-scheme-group{padding:10px 0;border-top:1px solid #edf0f4;overflow-wrap:anywhere}
+.ab-scheme-group:first-of-type{border-top:0}
+
+/* Keep controls at the same bottom edge as Event Radar. */
+.ab-mode .ab-view{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}
+.ab-view>.ab-filter-row,.ab-view>.ab-stats,.ab-view>.ab-subnav,.ab-view>.ab-toolbar,.ab-view>.ab-error{flex-shrink:0}
+#abContent{flex:1;min-height:0;overflow:auto;padding-bottom:12px}
+.ab-footer{margin:0 -16px;padding:12px 16px;border-top:1px solid #e5e6eb;background:#fff;justify-content:flex-end}
+.ab-footer button{min-height:34px}
+.ab-footer #abToggle{margin-right:auto}
+@media(max-width:360px){.ab-footer{margin:0 -12px;padding:10px 12px;gap:5px}.ab-footer button{padding:0 7px;font-size:11px}}
+
+#abAIMessage {
+  flex-shrink: 0;
+}
+#abAIMessage[hidden],
+#abAIMessage:empty {
+  display: none;
+}

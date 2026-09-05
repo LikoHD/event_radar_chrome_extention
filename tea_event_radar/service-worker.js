@@ -1,3 +1,4 @@
+importScripts('ab-worker.js');
 // Load multi-platform detection modules
 importScripts('analytics-core.js');
 importScripts('platform-catalog.js');
@@ -391,6 +392,7 @@ chrome.webRequest.onBeforeRequest.addListener(
         // 存储请求信息
         const eventData = {
           id: Date.now(),
+          requestId: details.requestId,
           timestamp: new Date().toISOString(),
           url: details.url,
           tabId: details.tabId,
@@ -812,7 +814,14 @@ function updatePanel() {
 
 // 监听来自面板的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "getEvents") {
+  if (message.action?.startsWith("ab:")) return false;
+  if (message.action === 'getPanelWidth') {
+    chrome.storage.local.get('panelWidth').then(sendResponse); return true;
+  } else if (message.action === 'setPanelWidth') {
+    const width = Number(message.width);
+    if (Number.isFinite(width)) chrome.storage.local.set({panelWidth: Math.max(280, Math.min(800, width))});
+    sendResponse({success: true});
+  } else if (message.action === "getEvents") {
     sendResponse({ events: capturedEvents });
   } else if (message.action === "clearEvents") {
     capturedEvents = [];
@@ -905,7 +914,7 @@ function createInPagePanel() {
 
   const restoreSavedWidth = (onWidthReady) => {
     try {
-      chrome.storage.local.get([WIDTH_STORAGE_KEY], (result) => {
+      chrome.runtime.sendMessage({action:'getPanelWidth'}, (result = {}) => {
         const savedWidth = typeof result[WIDTH_STORAGE_KEY] === 'number'
           ? result[WIDTH_STORAGE_KEY]
           : defaultWidth;
@@ -951,7 +960,7 @@ function createInPagePanel() {
 
   const saveWidth = (width) => {
     try {
-      chrome.storage.local.set({ [WIDTH_STORAGE_KEY]: width });
+      chrome.runtime.sendMessage({action:'setPanelWidth',width});
     } catch (error) {
       // 忽略存储错误，避免影响面板拖拽
     }

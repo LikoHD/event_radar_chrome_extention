@@ -1,0 +1,83 @@
+{
+  "model": "deepseek-v4-flash",
+  "durationMs": 6715,
+  "validJSON": true,
+  "fixture": "synthetic experiment with sanitized HTML, not a real site experiment",
+  "result": {
+    "experimentEstimate": {
+      "minimum": 1,
+      "maximum": 1,
+      "text": "根据提供的证据，存在明确的单个实验：composer-layout。本地计数experiments为1，与evidence一致。记录中只有这一个实验ID，无其他版本或疑似线索，因此实验数量确定为1。",
+      "evidenceIds": [
+        "e1",
+        "e2"
+      ]
+    },
+    "findings": [
+      {
+        "category": "count",
+        "type": "fact",
+        "text": "证据中仅包含一个实验ID：composer-layout，且本地计数experiments为1，两者一致。无其他实验或版本记录。",
+        "confidence": "high",
+        "evidenceIds": [
+          "e1",
+          "e2"
+        ]
+      },
+      {
+        "category": "design",
+        "type": "hypothesis",
+        "text": "实验composer-layout设计目的可能是测试在AI助手界面中是否向用户展示模型选择器（show_model_picker）。候选指标可能包括模型选择器的点击率、使用频率或用户完成率。实验单位应为用户视图或页面会话。可见变体为B（变体B），且曝光事件证实B被测试。",
+        "confidence": "medium",
+        "evidenceIds": [
+          "e1",
+          "e2",
+          "html1"
+        ]
+      },
+      {
+        "category": "groups",
+        "type": "fact",
+        "text": "实验composer-layout的配置中定义了变体A和B。变体A被标记为is_control=true，且show_model_picker=false；变体B未标记控制，且show_model_picker=true。因此可见的实验组为B，对照组为A（控制组），但未观察到A的实际曝光。",
+        "confidence": "high",
+        "evidenceIds": [
+          "e1"
+        ]
+      },
+      {
+        "category": "settings",
+        "type": "hypothesis",
+        "text": "实验composer-layout可能修改了模型选择器的可见性设置。变体A中show_model_picker设为false（隐藏），变体B中设为true（显示）。这属于界面配置的改动，可能影响用户是否看到模型选择按钮。",
+        "confidence": "medium",
+        "evidenceIds": [
+          "e1",
+          "html1"
+        ]
+      },
+      {
+        "category": "validation",
+        "type": "fact",
+        "text": "配置参数包括experiment_id、variants和current_variant。曝光事件中上报的experiment_id和variant_id与配置相匹配（experiment_id为composer-layout，variant_id为B），且配置中current_variant也为B，数据关联一致。",
+        "confidence": "high",
+        "evidenceIds": [
+          "e1",
+          "e2"
+        ]
+      }
+    ],
+    "missingEvidence": [
+      "对照组A的曝光或用户行为数据，以确认实际流量分配和对照效果。",
+      "实验平台信息（如使用的实验系统标识），仅域名不足以确定平台。",
+      "指标定义或假设文档，以明确实验目标的具体指标。",
+      "实验开始和结束时间，用于评估时间线。",
+      "版本ID或更详细的配置记录，但本地版本数为0，可能不适用。"
+    ],
+    "nextChecks": [
+      "查看是否只有变体B的曝光记录，需验证对照组A是否有流量。",
+      "核对曝光事件与配置的variant_id一致性（已发现一致，但需确保所有曝光事件）。",
+      "获取实验的详细目标指标定义，以明确成功标准。",
+      "检查是否存在其他实验ID在页面中未捕获，但基于当前证据无此线索。",
+      "确认页面HTML中模型选择按钮是否与show_model_picker设置对应。"
+    ]
+  }
+}

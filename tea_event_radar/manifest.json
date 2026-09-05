@@ -1,6 +1,6 @@
 {
   "name": "埋点大师-查看网站上报数据埋点-EventRadar",
-  "version": "1.0.5",
+  "version": "1.1.4",
   "description": "优雅展示网页埋点上报信息，支持搜索、过滤、复制",
   "manifest_version": 3,
   "permissions": [
@@ -18,6 +18,29 @@
     "service_worker": "service-worker.js"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN",
+      "js": [
+        "ab-probe.js"
+      ]
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": [
+        "ab-bridge.js"
+      ]
+    },
     {
       "matches": [
         "<all_urls>"
@@ -53,11 +76,17 @@
         "panel.js",
         "analytics-core.js",
         "platform-catalog.js",
-        "platform-adapters.js"
+        "platform-adapters.js",
+        "ab-panel.js",
+        "ai-settings.js",
+        "ab-panel.css",
+        "ab-core.js"
       ],
       "matches": [
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "minimum_chrome_version": "111",
+  "options_page": "ai-settings.html"
 }

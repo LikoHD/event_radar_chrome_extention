@@ -2,11 +2,15 @@
 
 > Status: Implemented
 > Source of truth: 当前仓库代码实现
-> Last synced: 2026-03-22
+> Last synced: 2026-09-05
 > Freshness: 🟢 FRESH
 > Scope: `Manifest V3` + `Service Worker 网络拦截` + `页面上下文探测` + `平台识别与解析` + `Side Panel / 页内面板` + `CSV 导出` + `过滤规则`
 
 ---
+
+## v1.1.0 实验探查扩展
+
+新增 A/B Test tab、独立实验采集/会话/证据链，以及独立 AI API 设置页（默认 DeepSeek V4 Flash）。实验采集与原埋点监控独立控制，详情和支持边界以 [A/B 探查说明](abtest-explorer-0905.md) 为准。新增 MAIN world 与隔离世界探针，最低 Chrome 111；本地扩展存储限制为可信上下文，原页内面板宽度通过后台消息读取和保存。
 
 ## 1. 文档目的
 
@@ -489,3 +493,7 @@ npm run clean
 3. 现在已经支持设置页中的 Regex 过滤规则和白名单规则
 4. 现在会保留可疑二进制 body 的 base64，供后续平台解析继续使用
 5. CSV 导出已经会优先走平台适配器归一化结果，而不是只认老的 DataRangers 格式
+
+## 1.1.3 交互与协议补充
+
+AI 点击即发送脱敏快照，不再要求预览确认。新增「方案总结」子 tab，四个统计按钮导航并展开相应分类。实际访问 15 个网站入口后补充私有协议适配；协议依据与未覆盖范围见 `research/sites-observed-2026-09-05.md`，验证见 `validation/abtest-1.1.3.md`。

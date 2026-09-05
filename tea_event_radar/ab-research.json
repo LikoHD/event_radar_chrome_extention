@@ -1,0 +1,588 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-05",
+  "policy": "调研是历史背景，不是当前实验事实；域名匹配不能证明当前平台或实验。",
+  "sites": [
+    {
+      "id": "www-bilibili-com",
+      "domains": [
+        "www.bilibili.com",
+        "bilibili.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "首页 HTML 请求 1，`window.abtest`"
+        }
+      ],
+      "observations": "`ab_version` 含 `for_ai_home_version: V8`、`rcmd_timeout_config: 550`，对应 `ab_split_num` 为 125、73。保留两条配置线索，不把分桶数字解释成流量比例或实验 ID。KV 接口返回 Not Modified，不能据此补全配置。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "视频社区、推荐首页",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "首页推荐、加载超时与界面版本",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "bilibili"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "www-qianwen-com",
+      "domains": [
+        "www.qianwen.com",
+        "qianwen.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`aide.qianwen.com/api/general/config/query` 248；CMS 265/266"
+        }
+      ],
+      "observations": "配置查询未成功；完整检查两份 CMS 响应（约 132 KB、63 KB），未找到明确实验字段。编码埋点不能直接解析。本次没有确认实验平台。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "国内 AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "模型入口、工具能力、页面设置",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "www-doubao-com",
+      "domains": [
+        "www.doubao.com",
+        "doubao.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`mcs.doubao.com/service/2/abtest_config/` 429/448；`/list` 449；`/samantha/user/ab/get` 726"
+        }
+      ],
+      "observations": "DataTester 应用 497858，配置包含 `val/vid`，事件含 `ab_sdk_version`；另一个接口有 `data.ab_results`，如 `deep_thinking_auto: optional`、`simplify_preset_prompt_version: v2`。两套证据分开处理，VID 不充当父实验 ID，空参数不生成线索。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "AI 助手与创作工具",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "输入布局、上传能力、深度思考与预设提示",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "volc",
+        "doubao"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "yuanbao-tencent-com",
+      "domains": [
+        "yuanbao.tencent.com",
+        "yuanbao.tencent.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`rdelivery.qq.com/v1/config/pull` 1058，HTTP 200"
+        }
+      ],
+      "observations": "在 `bizContent.tab.expData` 的 JSON 字符串中观察到 3 个带 `expName/assignment` 的实验；保留 `sGrayPolicyId/bucket/percentage` 和配置原值。普通远程配置不算实验。bootstrap 返回 401，观察范围不等于登录后完整状态。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "腾讯 AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "语音输入、功能配置与分组下发",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "tencent"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "www-taobao-com",
+      "domains": [
+        "www.taobao.com",
+        "taobao.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "MTop `mtop.relationrecommend.wirelessrecommend.recommend/2.0/` 1401，HTTP 200"
+        }
+      ],
+      "observations": "`data.tpp_buckets` 为 `46976#0#464877#0_46976#57252#521538#96_46976#57251#521536#9`。仅作为一条不透明分桶线索，未验证各段语义，不能据此统计 3 个实验。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "电商购物与推荐",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "推荐策略与分桶标识；不解码未知段位",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "alitpp"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "www-douyin-com",
+      "domains": [
+        "www.douyin.com",
+        "douyin.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/service/2/abtest_config/` 1779，HTTP 200"
+        }
+      ],
+      "observations": "完整响应约 49 KB，488 个 `val/vid` 配置。修复遍历只看前 200 个字段的问题。配置数量不等于实验数量；请求携带旧版本列表也不等于曝光。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "短视频推荐",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "推荐、播放器、自适应码率与 AI 入口",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "volc"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "chatglm-cn",
+      "domains": [
+        "chatglm.cn",
+        "chatglm.cn"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/chatglm/operation-api/experimental/groups` 2183，HTTP 200"
+        }
+      ],
+      "observations": "`result.group_names` 23 个 `名称:exp或control:组名` 字符串。按名称统计，只有明确 `control` 标记认定对照组。样本中的 `drawing_server_hi_dream:control:A` 可判断对照角色；其他 A/B 后缀不能单独判断。含 mobile/android 名称不证明作用于当前网页。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "智谱 AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "模型选择、绘图、欢迎页与功能入口",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "glm"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "agent-minimax-io",
+      "domains": [
+        "agent.minimax.io",
+        "agent.minimax.io"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/v1/api/config/web/common_config` 2346/2470；`/minimax-cloud/api/v1/config` 2468"
+        }
+      ],
+      "observations": "完整检查约 80 KB 配置，没有找到明确实验字段。模型 `supported_variants: [\"\", \"thinking\"]` 是负例，不能判为 A/B 实验。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "Agent 工作台",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "模型能力与工具配置；区分模型变体和实验变体",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "www-kimi-com",
+      "domains": [
+        "www.kimi.com",
+        "kimi.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`tab.volces.com/service/2/abtest_config/` 2623/2776；`gator.volces.com/list` 2765"
+        }
+      ],
+      "observations": "15 个 `val/vid` 参数与上报版本列表；包括会员落地页、侧栏等参数。保留未归属版本，不反推 15 个父实验。另一个 GetConfig 的可读配置没有提供父实验标识。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "会员落地页、侧栏和工具入口",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "volc"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "chat-qwen-ai",
+      "domains": [
+        "chat.qwen.ai",
+        "chat.qwen.ai"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/api/v2/configs/setting-config` 2831；`/api/v2/configs/` 2832"
+        }
+      ],
+      "observations": "HTTP 200，可读设置未发现明确实验字段；当次为未登录入口。不能把国内千问接口规则直接套到此站。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "国际 AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "模型及产品设置",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "chat-z-ai",
+      "domains": [
+        "chat.z.ai",
+        "chat.z.ai"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/api/config` 3629；`/api/models` 3630；`/api/v1/scene-cfg/` 3639"
+        }
+      ],
+      "observations": "完整检查约 255 KB 模型配置与 174 KB 场景配置，没有找到明确实验字段；有统计 SDK 不等于有实验平台。未观察到 chatglm.cn 的 groups 协议。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "GLM 国际助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "模型目录、场景配置与产品能力",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "gemini-google-com",
+      "domains": [
+        "gemini.google.com",
+        "gemini.google.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`BardChatUi/data/batchexecute` 2890/2891/2901；HTML 2869"
+        }
+      ],
+      "observations": "RPC 为带防 XSSI 前缀的私有数组协议，选取样本未找到可解释实验标识；完整 HTML 约 845 KB，WIZ 全局对象使用不透明键。CSS experiment badge 不算实验。当前不声称支持还原该私有协议。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "Google AI 助手",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "聊天界面与能力设置；私有 RPC 暂无明确实验语义",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "chatgpt-com",
+      "domains": [
+        "chatgpt.com",
+        "chatgpt.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/unauth-mweb/events/statsc/flush` 3154；HTML 3038"
+        }
+      ],
+      "observations": "本次进入未登录移动网页入口；statsc 请求是 counters/histograms 性能指标，不是 Statsig 实验。页面与选取埋点中未发现明确实验字段，不推断整个 ChatGPT 无实验。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "OpenAI 聊天产品未登录页",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "聊天入口与性能指标；statsc 不是 Statsig",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "openai-com",
+      "domains": [
+        "openai.com",
+        "openai.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`ab.chatgpt.com/v1/initialize` 3325，HTTP 200；`/v1/rgstr` 3338"
+        }
+      ],
+      "observations": "实际为 Statsig 自定义域名，完整响应约 4.9 MB，包含 feature_gates、dynamic_configs、layer_configs。研究工具读取完整配置，但插件遵守 512 KB 上限，只保留平台依据和缺口。样本覆盖 active/inactive/config 状态；不把配置目录总量当成本站运行的实验数量。rgstr 请求压缩，未解码确认曝光。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "OpenAI 企业官网",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "官网访问体验；配置目录可能覆盖其他产品",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "statsig"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "claude-ai",
+      "domains": [
+        "claude.ai",
+        "claude.ai"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "当次实际访问页面和访客状态，不代表全站或当前会话",
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/research/sites-observed-2026-09-05.md",
+          "details": "`/edge-api/bootstrap` 3459，HTTP 200"
+        }
+      ],
+      "observations": "初次站点检查自动结束后进入登录页；观察到 GrowthBook 143 项 features，多为 defaultValue，没有明确分组。另有空 Statsig 容器，不足以确认实际 Statsig 实验。默认值中的 control/v1 不构成对照分组证据。",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "productBackground": "Claude 登录页",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "description": "登录体验与默认功能设置",
+        "requiresCurrentParameterEvidence": true
+      },
+      "observedPlatforms": [
+        "growthbook"
+      ],
+      "limitations": [
+        "历史配置可能改变；当前平台判断以本次采集为准",
+        "未观察到的另一组设置、实验流量与效果未知"
+      ],
+      "verificationChecklist": [
+        "核对当前请求域名、字段结构与历史样本是否一致",
+        "比较同一项目、身份、frame 和时间范围内的配置值与实际上报",
+        "寻找明确分组或曝光依据，排除默认配置、权限和灰度发布"
+      ]
+    },
+    {
+      "id": "volcengine-console",
+      "domains": [
+        "console.volcengine.com"
+      ],
+      "observedAt": "2026-09-05",
+      "scope": "DataFinder 控制台看板页面；不代表客户业务网站",
+      "status": "historical-observation",
+      "currentEvidenceRequired": true,
+      "sources": [
+        {
+          "type": "live-network-audit",
+          "reference": "docs/validation/volc-console-1.1.2.md",
+          "details": "POST abtestvm.bytedance.com/service/2/abtest_config/；POST mcs.zijieapi.com/list，HTTP 200"
+        }
+      ],
+      "productBackground": "火山控制台外壳内展示客户分析看板，三者应用身份必须分开",
+      "observedPlatforms": [
+        "volc"
+      ],
+      "observations": "SDK app_id 3569：11 个 val/vid 参数，0 个可见父实验 ID。search_ai_mode=exp_grp 对应 vid 92428570，业务事件附带相同版本；未观察到明确曝光。其他 app_id 1229、15001 不可合并。TCC 配置未证实为随机实验。",
+      "candidateTopics": {
+        "hypothesisOnly": true,
+        "requiresCurrentParameterEvidence": true,
+        "description": "search_ai_mode 可能涉及控制台 AI 搜索；sideMenuABRoot.hasText=false 可能涉及导航文字；bytehi 参数可能是助手渠道、迁移或灰度，不直接解释为客户电商 GMV 实验"
+      },
+      "limitations": [
+        "路由项目 ID 不等于 SDK app_id",
+        "ctr_grp/ctrst_grp/exp_grp 名称不足以正式定义对照角色",
+        "11 个版本不等于 11 个实验；配置下发不证明曝光"
+      ],
+      "verificationChecklist": [
+        "比较同一 app_id 的配置 vid 和事件 ab_sdk_version",
+        "定位参数实际消费的界面和事件",
+        "排除客户看板指标对控制台实验目的的误导"
+      ]
+    }
+  ]
+}

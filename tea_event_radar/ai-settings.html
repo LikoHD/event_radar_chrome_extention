@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI API 设置 · EventRadar</title><link rel="stylesheet" href="ab-panel.css"></head>
+<body class="ai-settings-page"><main class="ai-settings"><h1>AI API 设置</h1><p>为 A/B 实验证据解读配置模型。默认 DeepSeek V4 Flash，也支持 OpenAI 兼容接口。</p>
+<form id="aiForm"><label for="baseURL">Base URL</label><input id="baseURL" type="url" required placeholder="https://api.deepseek.com"><label for="model">模型</label><input id="model" required value="deepseek-v4-flash"><label for="apiKey">API Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="输入新密钥；留空保留已保存的密钥"><p id="keyState" class="ab-note"></p><div class="ab-toolbar"><button class="primary" type="submit">保存设置</button><button id="test" type="button">保存并测试连接</button><button id="deleteKey" type="button">删除密钥</button></div></form>
+<p id="status" role="status" aria-live="polite"></p><p class="ab-note">密钥仅存于此浏览器扩展本地，不同步到云端。实验解读只在手动确认后发送脱敏证据。连接测试会发送一条不含网站数据的模型请求。</p></main><script src="ai-settings.js"></script></body></html>

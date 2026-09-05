@@ -1,0 +1,380 @@
+{
+  "note": "真实抓包中选取的协议字段，删除用户、身份、凭据、会话和无关内容；不代表全量配置。",
+  "fixtures": {
+    "bilibili": {
+      "source": "https://www.bilibili.com/",
+      "kind": "snapshot",
+      "data": {
+        "abtest": {
+          "ab_version": {
+            "for_ai_home_version": "V8",
+            "rcmd_timeout_config": "550"
+          },
+          "ab_split_num": {
+            "for_ai_home_version": 125,
+            "rcmd_timeout_config": 73
+          },
+          "home_version": "V8",
+          "in_new_ab": true
+        }
+      }
+    },
+    "chatglm": {
+      "source": "https://chatglm.cn/chatglm/operation-api/experimental/groups",
+      "kind": "response",
+      "data": {
+        "result": {
+          "group_names": [
+            "na_android_config:exp:NA",
+            "na_4o_config:exp:4o_A",
+            "tts_config:exp:tts_config_a",
+            "na_glm4plus_config:exp:open",
+            "mainchat_server_app:exp:A",
+            "mobile_history_daycheck:exp:a",
+            "desktop_toolbar:exp:A",
+            "chat_drawing_server:exp:A",
+            "drawing_server_cogview:exp:cogview4",
+            "app_welcome_v2:exp:B",
+            "chat_drawing_streamv2:exp:A",
+            "mainchat_rm_fc:exp:add",
+            "mainchat_dr:exp:open",
+            "chat_auto_entrance:exp:A",
+            "drawing_server_hi_dream:control:A",
+            "homepage_square:exp:close",
+            "assistant_recommend_prompt:exp:1",
+            "app_home_regular_user:exp:A",
+            "mainchat_moe:exp:300",
+            "assistant_greet_user:exp:greet_user",
+            "app_welcome_personalize:exp:A",
+            "assistant_model_exp_group:exp:glm4.5",
+            "ai_wallet:exp:ai_wallet_enable"
+          ]
+        }
+      }
+    },
+    "doubao": {
+      "source": "https://www.doubao.com/samantha/user/ab/get",
+      "kind": "response",
+      "data": {
+        "data": {
+          "ab_results": {
+            "ai_doc_ssr_config_reuse": "true",
+            "asr_enable_sound_end": "",
+            "copy_button_optimize": "1",
+            "deep_thinking_auto": "optional",
+            "deep_thinking_btn_memo": "1",
+            "new_guest_guidance_type": "skill-bar-bottom",
+            "simplify_preset_prompt_version": "v2"
+          }
+        }
+      }
+    },
+    "kimi": {
+      "source": "https://tab.volces.com/service/2/abtest_config/",
+      "kind": "response",
+      "data": {
+        "message": "success",
+        "data": {
+          "alipay_first": {
+            "val": "1",
+            "vid": "447980"
+          },
+          "android_has_kimiclaw": {
+            "val": "1",
+            "vid": "20227473"
+          },
+          "enable_qiyu_customer": {
+            "val": 1,
+            "vid": "472204"
+          },
+          "has_claw_group": {
+            "val": "1",
+            "vid": "444202"
+          },
+          "has_kimiskill": {
+            "val": "1",
+            "vid": "448285"
+          },
+          "has_oneclick_login": {
+            "val": 1,
+            "vid": "430778"
+          },
+          "membership_landing_page": {
+            "val": "yearly",
+            "vid": "419635"
+          },
+          "mykimi_0712": {
+            "val": "1",
+            "vid": "474813"
+          },
+          "n2s_memory_client": {
+            "val": 0,
+            "vid": "20224378"
+          },
+          "pc_browser_extension": {
+            "val": "1",
+            "vid": "447576"
+          },
+          "plugin_sidebar_entr_0824": {
+            "val": "0",
+            "vid": "490304"
+          },
+          "project_function_0709": {
+            "val": "1",
+            "vid": "20231837"
+          },
+          "sidebar_collapse": {
+            "val": "2",
+            "vid": "477941"
+          },
+          "task_center_0622": {
+            "val": "1",
+            "vid": "467081"
+          },
+          "web_android_claw": {
+            "val": 1,
+            "vid": "439495"
+          }
+        }
+      }
+    },
+    "doubao_datatester": {
+      "source": "https://mcs.doubao.com/service/2/abtest_config/",
+      "kind": "response",
+      "data": {
+        "data": {
+          "chat_input_new_layout": {
+            "val": true,
+            "vid": "90165874"
+          },
+          "enable_search_sider_bar": {
+            "val": {
+              "use_sider_bar": true,
+              "use_switch": false
+            },
+            "vid": "90964928"
+          },
+          "image_guidance_page_chat_input_position": {
+            "val": "center",
+            "vid": "90962683"
+          },
+          "input_upload_aispace_enable": {
+            "val": true,
+            "vid": "90941721"
+          },
+          "input_upload_code_enable": {
+            "val": true,
+            "vid": "90941722"
+          }
+        }
+      },
+      "requestContext": {
+        "app_id": "497858"
+      }
+    },
+    "taobao": {
+      "source": "https://h5api.m.taobao.com/h5/mtop.relationrecommend.wirelessrecommend.recommend/2.0/",
+      "kind": "response",
+      "data": {
+        "data": {
+          "tpp_buckets": "46976#0#464877#0_46976#57252#521538#96_46976#57251#521536#9"
+        }
+      }
+    },
+    "claude": {
+      "source": "https://claude.ai/edge-api/bootstrap",
+      "kind": "response",
+      "data": {
+        "growthbook": {
+          "features": {
+            "10101632": {
+              "defaultValue": false
+            },
+            "55060375": {
+              "defaultValue": false
+            },
+            "173923190": {
+              "defaultValue": {
+                "variant": "control"
+              }
+            },
+            "714470048": {
+              "defaultValue": {
+                "variant": "control"
+              }
+            }
+          }
+        }
+      }
+    },
+    "minimax_negative": {
+      "source": "https://agent.minimax.io/minimax-cloud/api/v1/config",
+      "kind": "response",
+      "data": {
+        "models": [
+          {
+            "supported_variants": [
+              "",
+              "thinking"
+            ]
+          }
+        ]
+      }
+    },
+    "yuanbao": {
+      "source": "https://rdelivery.qq.com/v1/config/pull",
+      "kind": "response",
+      "data": {
+        "configs": [
+          {
+            "key": "chat.input.hy4_default_switch",
+            "value": "{\"config_value_type\":1,\"config_value\":\"true\",\"switch_state\":1}",
+            "bizContent": null,
+            "report": {
+              "hitSubTaskID": "3975354"
+            }
+          },
+          {
+            "key": "infra.network.http_response_gzip_threshold_integer",
+            "value": "{\"config_value_type\":1,\"config_value\":\"-1\",\"switch_state\":0}",
+            "bizContent": {
+              "tab": {
+                "expData": "{\"sGrayPolicyId\":112789728,\"bucket\":81325,\"percentage\":33.3,\"params\":null,\"assignment\":\"exp_gzip_exp_B\",\"expName\":\"exp_ai_picture_silent_upload_aigc\",\"moduleBuckets\":100000}",
+                "conditionID": "0"
+              }
+            },
+            "report": {
+              "hitSubTaskID": "3925890"
+            }
+          },
+          {
+            "key": "infra.setting.test_did_switch",
+            "value": "{\"config_value_type\":1,\"config_value\":\"true\",\"switch_state\":0}",
+            "bizContent": {
+              "tab": {
+                "expData": "{\"sGrayPolicyId\":112718632,\"bucket\":1811,\"percentage\":50,\"params\":null,\"assignment\":\"exp_yuanbao_desktop_test_did_permanent_B\",\"expName\":\"exp_yuanbao_desktop_test_did_permanent\",\"moduleBuckets\":100000}",
+                "conditionID": "0"
+              }
+            },
+            "report": {
+              "hitSubTaskID": "3929032"
+            }
+          },
+          {
+            "key": "media.asr.exp_asr_web_voice_input_switch",
+            "value": "{\"config_value_type\":1,\"config_value\":\"exp_asr_web_voice_input_A\",\"switch_state\":0}",
+            "bizContent": {
+              "tab": {
+                "expData": "{\"sGrayPolicyId\":112555452,\"bucket\":62370,\"percentage\":30,\"params\":null,\"assignment\":\"exp_asr_web_voice_input_A\",\"expName\":\"exp_asr_web_voice_input\",\"moduleBuckets\":100000}",
+                "conditionID": "0"
+              }
+            },
+            "report": {
+              "hitSubTaskID": "3720395"
+            }
+          }
+        ]
+      }
+    },
+    "openai": {
+      "source": "https://ab.chatgpt.com/v1/initialize",
+      "kind": "response",
+      "data": {
+        "feature_gates": {},
+        "dynamic_configs": {
+          "73871191": {
+            "name": "73871191",
+            "rule_id": "launchedGroup",
+            "value": {
+              "codex_sidebar_button_behavior_variant": "treatment_1"
+            },
+            "group_name": "Treatment 1",
+            "is_experiment_active": false,
+            "is_user_in_experiment": false
+          },
+          "1977905538": {
+            "name": "1977905538",
+            "rule_id": "disabled",
+            "value": {
+              "directToMsft": false,
+              "forwardToAuthApi": false,
+              "directToGoogle": false,
+              "directToApple": false
+            }
+          },
+          "1922670275": {
+            "name": "1922670275",
+            "rule_id": "prestart",
+            "value": {},
+            "is_experiment_active": false,
+            "is_user_in_experiment": false
+          },
+          "924938727": {
+            "name": "924938727",
+            "rule_id": "2e6KeSnijs99lBTdMEqyfj",
+            "value": {
+              "web_open_payment_recovery_modal_directly": true
+            },
+            "group_name": "Test",
+            "is_experiment_active": true,
+            "is_user_in_experiment": true
+          }
+        }
+      }
+    },
+    "douyin": {
+      "source": "https://www.douyin.com/service/2/abtest_config/",
+      "kind": "response",
+      "data": {
+        "data": {
+          "abr_config": {
+            "val": {
+              "abrDriveMode": 1,
+              "algoArg": {
+                "abrAgloType": 1,
+                "bbaControl": true,
+                "dangerBuffer": 15,
+                "dangerFactor": 0.2,
+                "dangerFactorChange": 0,
+                "hurryBuffer": 5,
+                "hurryForseLowest": 0,
+                "isOpenSr": false,
+                "limitFirstDownSwitch": 3,
+                "limitFirstUpSwitch": 3,
+                "limitUpSwitchAfterDownSwitch": 3,
+                "limitUpSwitchAfterUpSwitch": 3,
+                "maxDownSwitchLevel": 1,
+                "maxPlaySpeed": 1,
+                "maxUpSwitchLevel": 1,
+                "minDangerFactor": 0.2,
+                "minSafeFactor": 0.4,
+                "rebufferDegrade": 1,
+                "safeBuffer": 30,
+                "safeFactor": 0.4,
+                "safeFactorChange": 0,
+                "safeRebufferDegrade": 0,
+                "safeThreshold": 30,
+                "safeUpgrade": 1,
+                "screen_factor": 1.2
+              },
+              "allowExtra": 1,
+              "isClassic": true,
+              "isOpenAutoDefi": true,
+              "isPlayAutoDefi": true,
+              "timeThreshlod": 60000
+            },
+            "vid": "17081649"
+          },
+          "activity_push": {
+            "val": 1,
+            "vid": "90087666"
+          },
+          "ai_douyin_entry": {
+            "val": 0,
+            "vid": "91257907"
+          }
+        }
+      }
+    }
+  }
+}

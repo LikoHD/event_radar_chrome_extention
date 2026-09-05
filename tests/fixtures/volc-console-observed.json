@@ -1,0 +1,353 @@
+{
+  "source": {
+    "page": "https://console.volcengine.com/datafinder/project/2111833/dashboard/7447796126314399744",
+    "observedAt": "2026-09-05",
+    "note": "真实只读网络观察；只保留配置、应用 ID 和事件名称，删除用户身份及无关业务数据"
+  },
+  "requestContext": {
+    "app_id": "3569"
+  },
+  "config": {
+    "data": {
+      "group_auto": {
+        "val": "ctr_grp",
+        "vid": "17155496"
+      },
+      "group_export": {
+        "val": "ctr_grp",
+        "vid": "16625100"
+      },
+      "group_expres": {
+        "val": "exp_grp",
+        "vid": "16821626"
+      },
+      "group_ins_group": {
+        "val": "ctrst_grp",
+        "vid": "16278130"
+      },
+      "group_todo": {
+        "val": "ctr_grp",
+        "vid": "16821566"
+      },
+      "group_unpaid": {
+        "val": "ctr_grp",
+        "vid": "16821714"
+      },
+      "intranet_use_bytehi": {
+        "val": true,
+        "vid": "90127783"
+      },
+      "online_use_bytehi": {
+        "val": true,
+        "vid": "90128021"
+      },
+      "pre_sales_use_bytehi": {
+        "val": true,
+        "vid": "90128022"
+      },
+      "search_ai_mode": {
+        "val": "exp_grp",
+        "vid": "92428570"
+      },
+      "sideMenuABRoot": {
+        "val": {
+          "hasText": false
+        },
+        "vid": "90097654"
+      }
+    },
+    "message": "success"
+  },
+  "reports": [
+    {
+      "reqid": 25,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 31,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "monitor_page_state_change",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "predefine_pageview",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 56,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "monitor_page_show",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "monitor_page_state_change",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 61,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 67,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 70,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 157,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "console_web_pkg",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 250,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reqid": 348,
+      "batches": [
+        {
+          "app_id": 3569,
+          "events": [
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            },
+            {
+              "event": "platform_storage_usage",
+              "ab_sdk_version": "92428570",
+              "abFields": {}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

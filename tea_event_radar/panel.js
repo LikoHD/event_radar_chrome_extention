@@ -15,17 +15,67 @@ const noEvents = document.getElementById('noEvents');
 const eventsList = document.getElementById('eventsList');
 const resizeHandle = document.querySelector('.resize-handle');
 
+// Extension context 失效处理（扩展更新/重载后 panel 仍开着时）
+function isExtensionContextValid() {
+  try { return !!chrome.runtime.id; } catch (e) { return false; }
+}
+function safeSendMessage(msg, cb) {
+  return new Promise((resolve) => {
+    if (!isExtensionContextValid()) { location.reload(); resolve(); return; }
+    try {
+      chrome.runtime.sendMessage(msg, (res) => {
+        if (chrome.runtime.lastError) { resolve(); return; }
+        if (cb) cb(res);
+        resolve(res);
+      });
+    } catch (e) {
+      location.reload();
+      resolve();
+    }
+  });
+}
+
 // 存储所有事件数据
 let allEvents = [];
 let isCapturing = false;
+// event card DOM 节点缓存：复用已创建节点，避免 img 重复请求
+const cardCache = new Map();
 let searchKeywords = []; // 存储搜索关键词
 let currentFilterMode = 'include'; // 当前过滤模式
 let currentPlatformFilter = '__known__'; // 当前平台过滤，默认仅显示已知平台
+
 
 // 性能优化配置
 const RENDER_DEBOUNCE_TIME = 50; // 渲染防抖时间(ms)
 const SEARCH_DEBOUNCE_TIME = 200; // 搜索防抖时间(ms)
 const MAX_VISIBLE_EVENTS = 100; // 最大可见事件数量
+
+// Icon blob-URL cache — preloaded once at startup so img nodes never trigger network requests
+const iconDataCache = new Map();
+
+async function preloadIcons() {
+  if (!window.TeaRadar || !window.TeaRadar.PlatformCatalog) return;
+  const platforms = window.TeaRadar.PlatformCatalog.getPlatformsByPriority();
+  await Promise.all(platforms.map(async (p) => {
+    if (!p.iconPath || iconDataCache.has(p.iconPath)) return;
+    try {
+      const resp = await fetch(chrome.runtime.getURL(p.iconPath));
+      const blob = await resp.blob();
+      const dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+      iconDataCache.set(p.iconPath, dataUrl);
+    } catch (e) {
+      iconDataCache.set(p.iconPath, chrome.runtime.getURL(p.iconPath));
+    }
+  }));
+}
+
+function getIconSrc(iconPath) {
+  return iconDataCache.get(iconPath) || chrome.runtime.getURL(iconPath);
+}
 
 // 防抖和性能优化变量
 let renderTimeout = null;
@@ -137,7 +187,14 @@ function initPlatformFilter() {
     const item = document.createElement('div');
     item.className = 'platform-filter-item';
     item.dataset.value = p.id;
-    item.innerHTML = `<img src="${p.iconPath}" alt="${p.label}"><span class="platform-filter-item-label">${p.label}</span>`;
+    const img = document.createElement('img');
+    img.src = getIconSrc(p.iconPath);
+    img.alt = p.label;
+    const label = document.createElement('span');
+    label.className = 'platform-filter-item-label';
+    label.textContent = p.label;
+    item.appendChild(img);
+    item.appendChild(label);
     platformFilterMenu.appendChild(item);
   });
 
@@ -213,13 +270,16 @@ function initPlatformFilter() {
 }
 
 // 初始化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.body.classList.toggle('embedded-panel', isEmbeddedPanel);
 
   // 顶层页面才启用内部拖拽手柄；嵌入 iframe 时由宿主页面处理拉伸
   if (!isEmbeddedPanel) {
     initResizeHandler();
   }
+
+  // 预加载所有平台图标为 blob URL，避免 img 节点反复触发网络请求
+  await preloadIcons();
 
   // 初始化平台过滤下拉框
   initPlatformFilter();
@@ -228,14 +288,14 @@ document.addEventListener('DOMContentLoaded', () => {
   restorePanelWidth();
 
   // 默认开始捕获
-  chrome.runtime.sendMessage({ action: 'startCapturing' }, (response) => {
+  safeSendMessage({ action: 'startCapturing' }, (response) => {
     if (response && response.success) {
       isCapturing = true;
       updateToggleButton();
     }
   });
 
-  chrome.runtime.sendMessage({ action: 'getEvents' }, (response) => {
+  safeSendMessage({ action: 'getEvents' }, (response) => {
     if (response && response.events) {
       allEvents = response.events;
       updateEventCount();
@@ -266,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 toggleBtn.addEventListener('click', () => {
   if (isCapturing) {
     // 当前正在捕获，点击后停止
-    chrome.runtime.sendMessage({ action: 'stopCapturing' }, (response) => {
+    safeSendMessage({ action: 'stopCapturing' }, (response) => {
       if (response && response.success) {
         isCapturing = false;
         updateToggleButton();
@@ -274,7 +334,7 @@ toggleBtn.addEventListener('click', () => {
     });
   } else {
     // 当前已停止，点击后开始
-    chrome.runtime.sendMessage({ action: 'startCapturing' }, (response) => {
+    safeSendMessage({ action: 'startCapturing' }, (response) => {
       if (response && response.success) {
         isCapturing = true;
         updateToggleButton();
@@ -284,11 +344,12 @@ toggleBtn.addEventListener('click', () => {
 });
 
 clearBtn.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'clearEvents' }, (response) => {
+  safeSendMessage({ action: 'clearEvents' }, (response) => {
     if (response && response.success) {
       allEvents = [];
-      // 清除展开状态记录
+      // 清除展开状态记录和卡片缓存
       expandedCards.clear();
+      cardCache.clear();
       renderEvents(allEvents);
       updateEventCount();
       // 清除搜索关键词
@@ -459,9 +520,62 @@ function filterEvents() {
   renderEvents(filteredEvents);
 }
 
-// 更新事件计数
+// 更新事件计数 + 平台chips（原地更新 DOM 节点，避免 img 反复销毁重建触发网络请求）
+const chipNodeCache = new Map(); // pid -> chip div element
+
 function updateEventCount() {
   eventCount.textContent = allEvents.length;
+
+  const counts = {};
+  for (const ev of allEvents) {
+    const pid = ev.platformId || 'unknown';
+    counts[pid] = (counts[pid] || 0) + 1;
+  }
+
+  const platformChips = document.getElementById('platformChips');
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  // Remove chips for platforms no longer present
+  for (const [pid, node] of chipNodeCache) {
+    if (!(pid in counts)) {
+      node.remove();
+      chipNodeCache.delete(pid);
+    }
+  }
+
+  // Update or create chips, append in sorted order
+  for (const [pid, count] of sorted) {
+    const meta = window.TeaRadar && window.TeaRadar.PlatformCatalog
+      ? window.TeaRadar.PlatformCatalog.getPlatform(pid) : null;
+    if (!meta) continue;
+
+    let chip = chipNodeCache.get(pid);
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.className = 'platform-chip';
+      chip.title = meta.label;
+      if (pid === 'unknown') {
+        const emoji = document.createElement('span');
+        emoji.className = 'platform-chip-emoji';
+        emoji.textContent = '☁️';
+        chip.appendChild(emoji);
+      } else {
+        const img = document.createElement('img');
+        img.className = 'platform-chip-icon';
+        img.src = getIconSrc(meta.iconPath);
+        img.alt = meta.label;
+        chip.appendChild(img);
+      }
+      const countSpan = document.createElement('span');
+      countSpan.className = 'platform-chip-count';
+      chip.appendChild(countSpan);
+      chipNodeCache.set(pid, chip);
+    }
+
+    // Update count text in-place
+    chip.querySelector('.platform-chip-count').textContent = count;
+    platformChips.appendChild(chip); // re-append to maintain sorted order
+  }
 }
 
 // 监听来自background的消息
@@ -522,13 +636,12 @@ function doRenderEvents(events) {
   isRendering = true;
 
   try {
-    // 清空列表
-    eventsList.innerHTML = '';
-
     // 显示或隐藏无事件提示
     if (events.length === 0) {
       noEvents.style.display = 'flex';
       eventsList.style.display = 'none';
+      eventsList.innerHTML = '';
+      cardCache.clear();
       return;
     }
 
@@ -542,27 +655,29 @@ function doRenderEvents(events) {
     const visibleEvents = sortedEvents.slice(-MAX_VISIBLE_EVENTS);
 
     // 使用DocumentFragment批量添加DOM元素
+    // 复用缓存节点：appendChild 移动已有节点不触发 img 重新请求
     const fragment = document.createDocumentFragment();
 
-    // 渲染每个事件卡片
     visibleEvents.forEach(event => {
-      const card = createEventCard(event);
-
-      // 添加悬停事件监听（防抖）
-      card.addEventListener('mouseenter', () => {
-        clearTimeout(userInteractTimeout);
-        isUserInteracting = true;
-      });
-
-      card.addEventListener('mouseleave', () => {
-        // 500ms 后再恢复自动滚动，防止抖动
-        userInteractTimeout = setTimeout(() => {
-          isUserInteracting = false;
-        }, 500);
-      });
-
-      fragment.appendChild(card);
+      let card = cardCache.get(event.id);
+      if (!card) {
+        card = createEventCard(event);
+        card.addEventListener('mouseenter', () => {
+          clearTimeout(userInteractTimeout);
+          isUserInteracting = true;
+        });
+        card.addEventListener('mouseleave', () => {
+          userInteractTimeout = setTimeout(() => {
+            isUserInteracting = false;
+          }, 500);
+        });
+        cardCache.set(event.id, card);
+      }
+      fragment.appendChild(card); // 已有节点直接移动，无 img 请求
     });
+
+    // 清空旧列表（可见节点已移入 fragment，未可见节点留在 cache 等待复用）
+    eventsList.innerHTML = '';
 
     // 批量添加到DOM
     eventsList.appendChild(fragment);
@@ -715,7 +830,7 @@ function createEventCard(event) {
       badge.appendChild(document.createTextNode('💭 ' + platformMeta.shortLabel));
     } else {
       const badgeImg = document.createElement('img');
-      badgeImg.src = platformMeta.iconPath;
+      badgeImg.src = getIconSrc(platformMeta.iconPath);
       badgeImg.alt = platformMeta.shortLabel;
       badgeImg.onerror = () => { badgeImg.style.display = 'none'; };
       badge.appendChild(badgeImg);
@@ -1267,7 +1382,7 @@ function setPanelWidth(width) {
   }
 
   // 向service worker发送消息调整页面内面板宽度（备用方案）
-  chrome.runtime.sendMessage({
+  safeSendMessage({
     action: 'resizePanel',
     width: width
   }).catch(error => {
@@ -1469,15 +1584,22 @@ function initSettings() {
   settingsBtn.addEventListener('click', () => {
     settingsPanel.classList.add('active');
     settingsOverlay.classList.add('active');
+    settingsBtn.setAttribute('aria-expanded', 'true');
+    settingsCloseBtn.focus({ preventScroll: true });
   });
 
   // Close settings
   function closeSettings() {
     settingsPanel.classList.remove('active');
     settingsOverlay.classList.remove('active');
+    settingsBtn.setAttribute('aria-expanded', 'false');
+    settingsBtn.focus({ preventScroll: true });
   }
   settingsCloseBtn.addEventListener('click', closeSettings);
   settingsOverlay.addEventListener('click', closeSettings);
+  settingsPanel.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSettings();
+  });
 
   // Filter rules
   const addFilterRuleBtn = document.getElementById('addFilterRuleBtn');
@@ -1612,7 +1734,7 @@ function saveRules() {
     });
 
     // Notify service worker about rule changes
-    chrome.runtime.sendMessage({
+    safeSendMessage({
       action: 'updateFilterRules',
       filterRules: filterRules,
       whitelistRules: whitelistRules
