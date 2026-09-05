@@ -35,3 +35,9 @@
 
 - 根目录 `README.md` 和 `tea_event_radar/README.md` 仍存在早期描述，未在本次 `docs/` 范围内同步修改。
 - 如果后续继续扩平台，优先更新 `product-technical-spec.md`，再决定是否补研究参考文档。
+
+## A/B Test 1.1.4
+
+- [使用、架构与覆盖范围](abtest-explorer-0905.md)
+- [实际网站观察](research/sites-observed-2026-09-05.md)
+- [1.1.4 验证记录](validation/abtest-1.1.4.md)

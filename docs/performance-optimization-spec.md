@@ -2,7 +2,7 @@
 
 > Status: Implemented
 > Source of truth: 当前仓库代码实现
-> Last synced: 2026-03-19
+> Last synced: 2026-09-05
 > Freshness: 🟢 FRESH
 > Scope: `Service Worker 内存管理` + `消息防抖` + `UI 渲染批处理` + `搜索过滤竞态修复`
 
@@ -334,3 +334,17 @@ const UPDATE_THROTTLE = 16;        // 拖拽节流，约60fps
 | 1.0.0 | — | 初始版本，基础事件捕获与展示 |
 | 1.0.2 | — | 性能优化：内存管理、防抖节流、渲染批处理 |
 | 1.0.3 | 2026-03-19 | 搜索过滤竞态修复：消除抖动 + 渲染队列防漏显 |
+
+## A/B 探查与构建增量（1.1.4）
+
+A/B 响应探针每份响应上限 512 KB，每会话最多保留 1,000 条原始证据并保留实验摘要。AI 规范实验摘要限制 120,000 字符，每条记录选取最近 15 次历史，另附有界页面上下文和匹配的历史调研。模型请求 60 秒超时，不自动重试。上述限制独立于原埋点的内存策略。
+
+使用 `npm test` 执行 Node 测试；`npm run build` 通过 Terser 处理原生 JS，并复制 HTML、CSS 和内置调研 JSON 到 dist，生成 tea_event_radar_dist.zip。dist 与 ZIP 按现有 .gitignore 留作本地构建产物，远端保存可重建的源码。
+
+## Evolution Log
+
+### 2026-09-05 A/B 与构建说明同步
+**Before:** 仅记录原埋点性能策略。
+**After:** 增补实验采集、AI 快照与打包边界。
+**Reason:** 配合 1.1.4 推送。
+**Impact:** 原埋点阈值和策略未改。
